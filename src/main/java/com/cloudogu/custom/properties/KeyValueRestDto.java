@@ -16,18 +16,17 @@
 
 package com.cloudogu.custom.properties;
 
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.MediaType;
+import de.otto.edison.hal.HalRepresentation;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Path("v2/sample")
-class SampleResource {
-
-  @GET
-  @Produces(MediaType.TEXT_PLAIN)
-  public String sample() {
-    return "Sample";
-  }
-
+@Getter
+@Setter
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class KeyValueRestDto extends HalRepresentation {
+  private String key;
+  private String value;
 }
