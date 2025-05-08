@@ -1,0 +1,40 @@
+/*
+ * Copyright (c) 2020 - present Cloudogu GmbH
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU Affero General Public License as published by the Free
+ * Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see https://www.gnu.org/licenses/.
+ */
+
+plugins {
+  id 'org.scm-manager.smp' version '0.19.0'
+}
+
+dependencies {
+  // define dependencies to other plugins here e.g.:
+  // plugin "sonia.scm.plugins:scm-mail-plugin:2.1.0"
+  // optionalPlugin "sonia.scm.plugins:scm-editor-plugin:2.0.0"
+}
+
+scmPlugin {
+  scmVersion = "3.8.0"
+  displayName = "Custom Properties"
+  description = "Plugin to add arbitrary custom properties to a repository, as a key-value structure"
+
+  // author = "Your name"
+  // category = "Workflow"
+
+  openapi {
+    packages = [
+      "com.cloudogu.custom.properties"
+    ]
+  }
+}
