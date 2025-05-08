@@ -14,6 +14,7 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { binder } from "@scm-manager/ui-extensions";
+import { binder, extensionPoints } from "@scm-manager/ui-extensions";
+import CustomPropertiesNavLink from "./CustomPropertiesNavLink";
 
-binder.bind("", "");
+binder.bind<extensionPoints.RepositoryNavigation>("repository.navigation", CustomPropertiesNavLink);
