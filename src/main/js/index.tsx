@@ -14,7 +14,53 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
+import React from "react";
 import { binder, extensionPoints } from "@scm-manager/ui-extensions";
+import { ConfigurationBinder } from "@scm-manager/ui-components";
+import { Route } from "react-router";
+import { Repository } from "@scm-manager/ui-types";
+import GlobalCustomPropertiesConfiguration from "./GlobalCustomPropertiesConfiguration";
+import CustomPropertiesOverview from "./CustomPropertiesOverview";
 import CustomPropertiesNavLink from "./CustomPropertiesNavLink";
+import CustomPropertiesEditor from "./CustomPropertiesEditor";
 
-binder.bind<extensionPoints.RepositoryNavigation>("repository.navigation", CustomPropertiesNavLink);
+const CustomPropertiesPredicate = ({ repository }: { repository: Repository }) => {
+  return repository._embedded?.customProperties;
+};
+
+binder.bind<extensionPoints.RepositoryNavigation>(
+  "repository.navigation",
+  CustomPropertiesNavLink,
+  CustomPropertiesPredicate,
+);
+
+const CustomPropertiesRoute = ({ url, repository }: { url: string; repository: Repository }) => {
+  return (
+    //@ts-expect-error
+    <Route
+      path={`${url}/custom-properties`}
+      exact
+      render={() => <CustomPropertiesOverview repository={repository} url={url} />}
+    />
+  );
+};
+binder.bind("repository.route", CustomPropertiesRoute, CustomPropertiesPredicate);
+
+const CustomPropertiesEditorRoute = ({ url, repository }: { url: string; repository: Repository }) => {
+  return (
+    //@ts-expect-error
+    <Route
+      path={`${url}/custom-properties/modify`}
+      exact
+      render={() => <CustomPropertiesEditor repository={repository} url={url} />}
+    />
+  );
+};
+binder.bind("repository.route", CustomPropertiesEditorRoute, CustomPropertiesPredicate);
+
+ConfigurationBinder.bindGlobal(
+  "/custom-properties",
+  "scm-custom-properties-plugin.navLink",
+  "customPropertiesConfig",
+  GlobalCustomPropertiesConfiguration,
+);

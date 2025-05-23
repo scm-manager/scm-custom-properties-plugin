@@ -1,5 +1,61 @@
 {
   "scm-custom-properties-plugin": {
-    "navLink": "Eigenschaften"
+    "navLink": "Benutzerdefinierte Eigenschaften",
+    "config": {
+      "title": "Konfiguration für benutzerdefinierte Eigenschaften",
+      "enabled": {
+        "label": "Plugin aktivieren"
+      }
+    },
+    "repository": {
+      "subtitle": "Benutzerdefinierte Repository Eigenschaften",
+      "api": "API-Pfad"
+    },
+    "modal": {
+      "delete": {
+        "title": "Benutzerdefinierte Eigenschaft löschen",
+        "submit": "Ja",
+        "cancel": "Nein",
+        "message": "Sind Sie sich wirklich sicher, dass Sie die benutzerdefinierte Eigenschaft mit dem Schlüssel \"{{key}}\" löschen wollen?"
+      }
+    },
+    "editor": {
+      "subtitle_create": "Benutzerdefinierte Eigenschaft anlegen",
+      "subtitle_edit": "Benutzerdefinierte Eigenschaft mit dem Schlüssel \"{{key}}\" bearbeiten",
+      "key": {
+        "label": "Schlüssel",
+        "tooLong": "Der Schlüssel überschreitet die maximale Länge von 255 Zeichen",
+        "invalidChars": "Für den Schlüssel sind nur Buchstaben, Ziffern, Leerzeichen, Punkt und Unterstrich erlaubt",
+        "alreadyExists": "Der angegebene Schlüssel \"{{key}}\" existiert bereits für dieses Repository"
+      },
+      "submitSuccessCreate": "Die benutzerdefinierte Eigenschaft wurde erfolgreich erstellt",
+      "value": {
+        "label": "Wert"
+      }
+    },
+    "table": {
+      "header": {
+        "key": "Schlüssel",
+        "value": "Wert",
+        "action": "Aktion"
+      },
+      "body": {
+        "edit": "Eintrag mit dem Schlüssel {{key}} bearbeiten",
+        "delete": "Eintrag mit dem Schlüssel {{key}} löschen"
+      },
+      "footer": {
+        "add": "Neuen Eintrag erstellen"
+      }
+    }
+  },
+  "permissions": {
+    "configuration": {
+      "read,write": {
+        "customProperties": {
+          "displayName": "Globale Konfiguration für benutzerdefinierte Eigenschaften ändern",
+          "description": "Darf die globale Konfiguration für benutzerdefinierte Eigenschaften verändern"
+        }
+      }
+    }
   }
 }

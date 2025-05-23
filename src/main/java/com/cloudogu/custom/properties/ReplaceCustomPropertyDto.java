@@ -14,20 +14,28 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import React from "react";
+package com.cloudogu.custom.properties;
 
-import { SecondaryNavigationItem } from "@scm-manager/ui-components";
-import { useTranslation } from "react-i18next";
+import de.otto.edison.hal.HalRepresentation;
+import jakarta.validation.constraints.Pattern;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.validator.constraints.Length;
 
-type NavLinkProps = { url: string };
+@Getter
+@Setter
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class ReplaceCustomPropertyDto extends HalRepresentation {
+  @Length(max = 255)
+  @Pattern(regexp = "^[a-zA-Z_ 0-9.]*$")
+  private String oldKey;
+  private String oldValue;
 
-export default function CustomPropertiesNavLink({ url }: Readonly<NavLinkProps>) {
-  const [t] = useTranslation("plugins");
-  return (
-    <SecondaryNavigationItem
-      label={t("scm-custom-properties-plugin.navLink")}
-      to={`${url}/custom-properties`}
-      icon="fas fa-sticky-note"
-    />
-  );
+  @Length(max = 255)
+  @Pattern(regexp = "^[a-zA-Z_ 0-9.]*$")
+  private String newKey;
+  private String newValue;
 }

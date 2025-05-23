@@ -14,20 +14,24 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import React from "react";
+package com.cloudogu.custom.properties.config;
 
-import { SecondaryNavigationItem } from "@scm-manager/ui-components";
-import { useTranslation } from "react-i18next";
+import de.otto.edison.hal.HalRepresentation;
+import de.otto.edison.hal.Links;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-type NavLinkProps = { url: string };
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+public class GlobalConfigDto extends HalRepresentation {
+  private boolean enabled;
 
-export default function CustomPropertiesNavLink({ url }: Readonly<NavLinkProps>) {
-  const [t] = useTranslation("plugins");
-  return (
-    <SecondaryNavigationItem
-      label={t("scm-custom-properties-plugin.navLink")}
-      to={`${url}/custom-properties`}
-      icon="fas fa-sticky-note"
-    />
-  );
+  @Override
+  protected HalRepresentation add(Links links) {
+    return super.add(links);
+  }
 }

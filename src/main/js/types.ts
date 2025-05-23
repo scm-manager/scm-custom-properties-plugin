@@ -14,20 +14,14 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import React from "react";
+export type CustomProperty = {
+  key: string;
+  value: string;
+};
 
-import { SecondaryNavigationItem } from "@scm-manager/ui-components";
-import { useTranslation } from "react-i18next";
-
-type NavLinkProps = { url: string };
-
-export default function CustomPropertiesNavLink({ url }: Readonly<NavLinkProps>) {
-  const [t] = useTranslation("plugins");
-  return (
-    <SecondaryNavigationItem
-      label={t("scm-custom-properties-plugin.navLink")}
-      to={`${url}/custom-properties`}
-      icon="fas fa-sticky-note"
-    />
-  );
-}
+export type ReplaceCustomProperty = {
+  oldKey: string;
+  oldValue: string;
+  newKey: string;
+  newValue: string;
+};

@@ -14,20 +14,28 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import React from "react";
-
-import { SecondaryNavigationItem } from "@scm-manager/ui-components";
+import { ConfigurationForm, Form, Title } from "@scm-manager/ui-core";
+import { HalRepresentation } from "@scm-manager/ui-types";
+import React, { FC } from "react";
 import { useTranslation } from "react-i18next";
 
-type NavLinkProps = { url: string };
+type GlobalCustomPropertiesConfigurationDto = HalRepresentation & {
+  enabled: boolean;
+};
 
-export default function CustomPropertiesNavLink({ url }: Readonly<NavLinkProps>) {
+const GlobalCustomPropertiesConfiguration: FC<{ link: string }> = ({ link }) => {
   const [t] = useTranslation("plugins");
   return (
-    <SecondaryNavigationItem
-      label={t("scm-custom-properties-plugin.navLink")}
-      to={`${url}/custom-properties`}
-      icon="fas fa-sticky-note"
-    />
+    <ConfigurationForm<GlobalCustomPropertiesConfigurationDto>
+      link={link}
+      translationPath={["plugins", "scm-custom-properties-plugin.config"]}
+    >
+      <Title>{t("scm-custom-properties-plugin.config.title")}</Title>
+      <Form.Row>
+        <Form.Checkbox name="enabled" />
+      </Form.Row>
+    </ConfigurationForm>
   );
-}
+};
+
+export default GlobalCustomPropertiesConfiguration;

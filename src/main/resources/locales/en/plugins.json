@@ -1,5 +1,61 @@
 {
   "scm-custom-properties-plugin": {
-    "navLink": "Properties"
+    "navLink": "Custom Properties",
+    "config": {
+      "title": "Custom Properties Configuration",
+      "enabled": {
+        "label": "Activate plugin"
+      }
+    },
+    "repository": {
+      "subtitle": "Custom Repository Properties",
+      "api": "API Path"
+    },
+    "modal": {
+      "delete": {
+        "title": "Delete Custom Property",
+        "submit": "Yes",
+        "cancel": "No",
+        "message": "Do you really want to delete the custom property with the key '{{key}}'?"
+      }
+    },
+    "editor": {
+      "subtitle_create": "Add new custom property",
+      "subtitle_edit": "Edit custom property with key '{{key}}'",
+      "key": {
+        "label": "Key",
+        "tooLong": "The maximum length of a key is 255 characters",
+        "invalidChars": "Keys are only allowed to contain letters, numbers, spaces, periods and underscores",
+        "alreadyExists": "The provided key '{{key}}' already exists for this repository"
+      },
+      "submitSuccessCreate": "The custom property was successfully created",
+      "value": {
+        "label": "Value"
+      }
+    },
+    "table": {
+      "header": {
+        "key": "Key",
+        "value": "Value",
+        "action": "Action"
+      },
+      "body": {
+        "edit": "Edit entry with the key {{key}}",
+        "delete": "Delete entry with the key {{key}}"
+      },
+      "footer": {
+        "add": "Add new custom property"
+      }
+    }
+  },
+  "permissions": {
+    "configuration": {
+      "read,write": {
+        "customProperties": {
+          "displayName": "Modify global configuration for custom properties",
+          "description": "May modify global configuration for custom properties"
+        }
+      }
+    }
   }
 }

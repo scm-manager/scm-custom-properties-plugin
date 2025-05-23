@@ -15,7 +15,7 @@
  */
 
 plugins {
-  id 'org.scm-manager.smp' version '0.19.0'
+  id 'org.scm-manager.smp' version '0.18.0'
 }
 
 dependencies {
@@ -25,9 +25,9 @@ dependencies {
 }
 
 scmPlugin {
-  scmVersion = "3.8.0"
+  scmVersion = "3.7.0"
   displayName = "Custom Properties"
-  description = "Plugin to add arbitrary custom properties to a repository, as a key-value structure"
+  description = "Plugin to add user-defined properties to a repository as a key-value structure"
 
   // author = "Your name"
   // category = "Workflow"

@@ -16,14 +16,632 @@
 
 package com.cloudogu.custom.properties;
 
+import com.cloudogu.custom.properties.config.ConfigService;
+import com.cloudogu.custom.properties.config.GlobalConfig;
+import org.github.sdorra.jse.ShiroExtension;
+import org.github.sdorra.jse.SubjectAware;
+import org.jboss.resteasy.mock.MockHttpRequest;
+import org.jboss.resteasy.mock.MockHttpResponse;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import sonia.scm.repository.Repository;
+import sonia.scm.repository.RepositoryManager;
+import sonia.scm.repository.RepositoryTestData;
+import sonia.scm.store.DataStore;
+import sonia.scm.store.DataStoreFactory;
+import sonia.scm.store.InMemoryByteConfigurationStoreFactory;
+import sonia.scm.store.InMemoryByteDataStoreFactory;
+import sonia.scm.web.RestDispatcher;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
+import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
+import static jakarta.ws.rs.core.Response.Status.CONFLICT;
+import static jakarta.ws.rs.core.Response.Status.FORBIDDEN;
+import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
+import static jakarta.ws.rs.core.Response.Status.NO_CONTENT;
+import static jakarta.ws.rs.core.Response.Status.OK;
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 
+@ExtendWith({MockitoExtension.class, ShiroExtension.class})
 class CustomPropertiesResourceTest {
 
-  @Test
-  void test() {
-    assertThat(true).isTrue();
+  private static final String DUMMY_KEY_VALUE = """
+    { "key": "hello", "value": "world"}
+    """;
+
+  private static final String DUMMY_KEY_VALUE_2_SAME_KEY = """
+    { "key": "hello", "value": "monde"}
+    """;
+
+  private static final String DUMMY_KEY_VALUE_2_DIFF_KEY = """
+    { "key": "ice", "value": "cream"}
+    """;
+
+  private static final String DUMMY_KEY_VALUE_JSON = """
+    { "key": "someJson", "value": "[{'key': 'lorem_ipsum', 'text': 'aöß76&$'}, {'key': 'lorem_ipsum2', 'text': 'hello'}]"}
+    """;
+
+  private static final String DUMMY_KEY_VALUE_INVALID_KEY = """
+    { "key": "maßband", "value": "12cm"}
+    """;
+
+  private static final String DUMMY_KEY_VALUE_HAS_ALL_ALLOWED_KEY_CHARS = """
+    { "key": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789. _", "value": "12cm"}
+    """;
+
+  private static final String DUMMY_REPLACE_KEY_VALUE = """
+      { "oldKey": "hello", "oldValue": "world", "newKey": "hallo", "newValue": "welt"}
+    """;
+
+  private static final String DUMMY_REPLACE_KEY_VALUE_INVALID_NEW_KEY = """
+      { "oldKey": "hello", "oldValue": "world", "newKey": "this-is-extreme#", "newValue": "somethingelse"}
+    """;
+
+  private Repository repository;
+
+  private RestDispatcher dispatcher;
+
+  private ConfigService configService;
+
+  private final CustomPropertyMapper customPropertyMapper = new CustomPropertyMapperImpl();
+
+  @Mock
+  private RepositoryManager repositoryManager;
+
+  private final DataStoreFactory storeFactory = new InMemoryByteDataStoreFactory();
+
+  @BeforeEach
+  void setUp() {
+    repository = RepositoryTestData.createHeartOfGold("git");
+    this.configService = new ConfigService(new InMemoryByteConfigurationStoreFactory());
+    CustomPropertiesResource resource = new CustomPropertiesResource(
+      repositoryManager,
+      new CustomPropertiesService(storeFactory),
+      configService,
+      customPropertyMapper
+    );
+
+    dispatcher = new RestDispatcher();
+    dispatcher.addSingletonResource(resource);
+
+    lenient().when(repositoryManager.get(eq(repository.getNamespaceAndName()))).thenReturn(repository);
+  }
+
+  @Nested
+  class Read {
+
+    @Test
+    @SubjectAware(value = "cannotRead")
+    void shouldReturnUnauthorizedForLackingReadPermissions() throws URISyntaxException {
+
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(FORBIDDEN.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "cannotRead")
+    void shouldReturnNotFoundForNonexistingRepository() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", "bogus", "repo");
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NOT_FOUND.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
+    void shouldReturnEmptyDtoForEmptyRepository() throws URISyntaxException, UnsupportedEncodingException {
+
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      assertThat(response.getContentAsString()).isEqualTo("[]");
+    }
+
+    @Test
+    @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
+    void shouldReturnSingleKeyValueEntry() throws URISyntaxException, UnsupportedEncodingException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      store.put(new CustomProperty("hello", "world"));
+
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      assertThat(response.getContentAsString()).isEqualTo("""
+        [{"key":"hello","value":"world"}]""");
+    }
+
+    @Test
+    @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
+    void shouldReturnForbiddenIfPluginIsDisabled() throws URISyntaxException {
+      configService.setGlobalConfig(new GlobalConfig(false));
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(FORBIDDEN.getStatusCode());
+    }
+  }
+
+  @Nested
+  class Create {
+
+    @Test
+    @SubjectAware(value = "hasReadPermissionsOnly", permissions = "repository:read:*")
+    void shouldReturnUnauthorizedForLackingWritePermissions() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.post(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(FORBIDDEN.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissionsOnly", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldReturnNotFoundForNonExistingRepository() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", "bogus", "repo");
+      MockHttpRequest request = MockHttpRequest.post(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NOT_FOUND.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldWriteKeyValue() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.post(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NO_CONTENT.getStatusCode());
+
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      Map<String, CustomProperty> values = store.getAll();
+
+      assertThat(values).hasSize(1);
+      assertThat(values.get("hello").getValue()).isEqualTo("world");
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldReturnConflictIfKeyValueAlreadyExists() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.post(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      MockHttpRequest request2 = MockHttpRequest.post(uri);
+      request2.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request2.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response2 = new MockHttpResponse();
+      dispatcher.invoke(request2, response2);
+
+      assertThat(response2.getStatus()).isEqualTo(CONFLICT.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldReturnConflictIfKeyAlreadyExists() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.post(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      MockHttpRequest request2 = MockHttpRequest.post(uri);
+      request2.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request2.content(DUMMY_KEY_VALUE_2_SAME_KEY.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response2 = new MockHttpResponse();
+      dispatcher.invoke(request2, response2);
+
+      assertThat(response2.getStatus()).isEqualTo(CONFLICT.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldWriteTwoKeyValues() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.post(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      MockHttpRequest request2 = MockHttpRequest.post(uri);
+      request2.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request2.content(DUMMY_KEY_VALUE_2_DIFF_KEY.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response2 = new MockHttpResponse();
+
+      dispatcher.invoke(request2, response2);
+
+      assertThat(response2.getStatus()).isEqualTo(NO_CONTENT.getStatusCode());
+
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      Map<String, CustomProperty> values = store.getAll();
+
+      assertThat(values).hasSize(2);
+      assertThat(values.get("hello").getValue()).isEqualTo("world");
+      assertThat(values.get("ice").getValue()).isEqualTo("cream");
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldWriteValueAndPertainJSONFormat() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.post(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE_JSON.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NO_CONTENT.getStatusCode());
+
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      Map<String, CustomProperty> values = store.getAll();
+
+      assertThat(values).hasSize(1);
+      assertThat(values.get("someJson").getValue()).isEqualTo("""
+        [{'key': 'lorem_ipsum', 'text': 'aöß76&$'}, {'key': 'lorem_ipsum2', 'text': 'hello'}]""");
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldRespondBadRequestForInvalidKey() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.post(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE_INVALID_KEY.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(BAD_REQUEST.getStatusCode());
+
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-property").forRepository(repository).build();
+      Map<String, CustomProperty> values = store.getAll();
+
+      assertThat(values).isEmpty();
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldSupportAllKeyChars() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.post(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE_HAS_ALL_ALLOWED_KEY_CHARS.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(204);
+
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      Map<String, CustomProperty> values = store.getAll();
+
+      assertThat(values).hasSize(1);
+      assertThat(values.get("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789. _")).isNotNull();
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldReturnForbiddenIfPluginIsDisabled() throws URISyntaxException {
+      configService.setGlobalConfig(new GlobalConfig(false));
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.post(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE_HAS_ALL_ALLOWED_KEY_CHARS.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(FORBIDDEN.getStatusCode());
+    }
+  }
+
+  @Nested
+  class Update {
+
+    @Test
+    @SubjectAware(value = "hasReadPermissionsOnly", permissions = "repository:read:*")
+    void shouldReturnUnauthorizedForLackingWritePermissions() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.put(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
+      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(FORBIDDEN.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldRespondNotFoundIfOldEntityDoesntExist() throws URISyntaxException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.put(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
+      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NOT_FOUND.getStatusCode());
+
+      Map<String, CustomProperty> result = store.getAll();
+
+      assertThat(result).isEmpty();
+    }
+
+    @Test
+    @SubjectAware(value = "cannotRead")
+    void shouldReturnNotFoundForNonExistingRepository() throws URISyntaxException {
+
+      String uri = format("/v2/custom-properties/%s/%s", "bogus", "repo");
+      MockHttpRequest request = MockHttpRequest.put(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
+      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NOT_FOUND.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldRespondConflictIfNewEntityAlreadyExists() throws URISyntaxException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      store.put("hello", new CustomProperty("hello", "world"));
+      store.put("hallo", new CustomProperty("hallo", "welt"));
+
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.put(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
+      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(CONFLICT.getStatusCode());
+
+      Map<String, CustomProperty> result = store.getAll();
+
+      assertThat(result).hasSize(2);
+      assertThat(result.get("hallo").getValue()).isEqualTo("welt");
+      assertThat(result.get("hello").getValue()).isEqualTo("world");
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldRespondBadRequestIfNewEntityKeyIsInvalid() throws URISyntaxException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      store.put("hello", new CustomProperty("hello", "world"));
+
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.put(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
+      request.content(DUMMY_REPLACE_KEY_VALUE_INVALID_NEW_KEY.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(BAD_REQUEST.getStatusCode());
+
+      Map<String, CustomProperty> result = store.getAll();
+
+      assertThat(result).hasSize(1);
+      assertThat(result.get("hello").getValue()).isEqualTo("world");
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldReplaceExistingKeyValueEntryWithDifferentKeyAndValue() throws URISyntaxException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      store.put("hello", new CustomProperty("hello", "world"));
+
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.put(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
+      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NO_CONTENT.getStatusCode());
+
+      Map<String, CustomProperty> result = store.getAll();
+
+      assertThat(result).hasSize(1);
+      assertThat(result.get("hallo").getValue()).isEqualTo("welt");
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldReturnForbiddenIfPluginIsDisabled() throws URISyntaxException {
+      configService.setGlobalConfig(new GlobalConfig(false));
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.put(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
+      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(FORBIDDEN.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldReturnConflictIfKeyAlreadyExistsForNewProperty() throws URISyntaxException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      store.put("hello", new CustomProperty("hello", "world"));
+      store.put("hallo", new CustomProperty("hallo", "world"));
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+
+      MockHttpRequest request = MockHttpRequest.put(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
+      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(CONFLICT.getStatusCode());
+    }
+  }
+
+  @Nested
+  class Delete {
+
+    @Test
+    @SubjectAware(value = "hasReadPermissionsOnly", permissions = "repository:read:*")
+    void shouldReturnUnauthorizedForLackingWritePermissions() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.delete(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(FORBIDDEN.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldDoNothingIfEntityDoesntExist() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.delete(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NO_CONTENT.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "cannotRead")
+    void shouldReturnNotFoundForNonExistingRepository() throws URISyntaxException {
+
+      String uri = format("/v2/custom-properties/%s/%s", "bogus", "repo");
+      MockHttpRequest request = MockHttpRequest.delete(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NOT_FOUND.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldDeletePreviouslyExistingEntity() throws URISyntaxException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      store.put("hello", new CustomProperty("hello", "world"));
+
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.delete(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NO_CONTENT.getStatusCode());
+
+      Map<String, CustomProperty> result = store.getAll();
+
+      assertThat(result).isEmpty();
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldKeepOtherEntities() throws URISyntaxException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      store.put("hello", new CustomProperty("hello", "world"));
+      store.put("lorem", new CustomProperty("lorem", "world"));
+
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.delete(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NO_CONTENT.getStatusCode());
+
+      Map<String, CustomProperty> result = store.getAll();
+
+      assertThat(result).hasSize(1);
+      assertThat(result.get("lorem").getValue()).isEqualTo("world");
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldReturnForbiddenIfPluginIsDisabled() throws URISyntaxException {
+      configService.setGlobalConfig(new GlobalConfig(false));
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.delete(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(FORBIDDEN.getStatusCode());
+    }
   }
 }

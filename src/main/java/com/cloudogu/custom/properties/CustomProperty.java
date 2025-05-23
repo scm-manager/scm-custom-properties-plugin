@@ -16,17 +16,24 @@
 
 package com.cloudogu.custom.properties;
 
-import de.otto.edison.hal.HalRepresentation;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
-@EqualsAndHashCode(callSuper = true)
-public class KeyValueRestDto extends HalRepresentation {
+@AllArgsConstructor
+@XmlRootElement(name = "customProperty")
+@XmlAccessorType(XmlAccessType.FIELD)
+public class CustomProperty implements Comparable<CustomProperty> {
   private String key;
   private String value;
+
+  @Override
+  public int compareTo(CustomProperty customProperty) {
+    return this.key.compareTo(customProperty.getKey());
+  }
 }

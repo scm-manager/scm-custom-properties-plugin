@@ -14,20 +14,13 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import React from "react";
+package com.cloudogu.custom.properties;
 
-import { SecondaryNavigationItem } from "@scm-manager/ui-components";
-import { useTranslation } from "react-i18next";
+public class CustomPropertiesContext {
 
-type NavLinkProps = { url: string };
+  private CustomPropertiesContext() { }
 
-export default function CustomPropertiesNavLink({ url }: Readonly<NavLinkProps>) {
-  const [t] = useTranslation("plugins");
-  return (
-    <SecondaryNavigationItem
-      label={t("scm-custom-properties-plugin.navLink")}
-      to={`${url}/custom-properties`}
-      icon="fas fa-sticky-note"
-    />
-  );
+  public static final String CUSTOM_PROPERTIES_V2_PATH = "v2/custom-properties";
+  public static final String CONFIG_PERMISSION_NAME = "customProperties";
+  public static final String LINK_NAME = "customProperties";
 }
