@@ -16,31 +16,66 @@
 
 package com.cloudogu.custom.properties;
 
+import com.google.common.annotations.VisibleForTesting;
+import de.otto.edison.hal.Links;
+import jakarta.inject.Inject;
+import jakarta.inject.Provider;
+import org.mapstruct.AfterMapping;
+import org.mapstruct.Context;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import sonia.scm.api.v2.resources.LinkBuilder;
+import sonia.scm.api.v2.resources.ScmPathInfoStore;
+import sonia.scm.repository.Repository;
+import sonia.scm.repository.RepositoryPermissions;
 
 import java.util.Collection;
+
+import static de.otto.edison.hal.Link.link;
 
 @Mapper
 public abstract class CustomPropertyMapper {
 
+  @Inject
+  private Provider<ScmPathInfoStore> scmPathInfoStore;
+
+  @VisibleForTesting
+  public void setScmPathInfoStore(Provider<ScmPathInfoStore> scmPathInfoStore) {
+    this.scmPathInfoStore = scmPathInfoStore;
+  }
+
   @Mapping(target = "links", ignore = true)
   @Mapping(target = "embedded", ignore = true)
   @Mapping(target = "attributes", ignore = true)
-  public abstract CustomPropertyDto map(CustomProperty customProperty);
+  public abstract CustomPropertyDto map(CustomProperty customProperty, @Context Repository repository);
   public abstract CustomProperty map(CustomPropertyDto customPropertyDto);
 
-  public Collection<CustomPropertyDto> mapToDtoCollection(Collection<CustomProperty> customProperties) {
-    return customProperties.stream().map(this::map).toList();
+  public Collection<CustomPropertyDto> mapToDtoCollection(Collection<CustomProperty> customProperties, Repository repository) {
+    return customProperties.stream().map(customProperty -> this.map(customProperty, repository)).toList();
   }
 
-  public CustomPropertyReplacement map(ReplaceCustomPropertyDto replaceCustomPropertyDto) {
-    return new CustomPropertyReplacement(
-      new CustomProperty(replaceCustomPropertyDto.getOldKey(), replaceCustomPropertyDto.getOldValue()),
-      new CustomProperty(replaceCustomPropertyDto.getNewKey(), replaceCustomPropertyDto.getNewValue())
+  @AfterMapping
+  void appendLinks(@MappingTarget CustomPropertyDto customPropertyDto, @Context Repository repository) {
+    if (!RepositoryPermissions.modify(repository).isPermitted()) {
+      return;
+    }
+
+    LinkBuilder linkBuilder = new LinkBuilder(scmPathInfoStore.get().get(), CustomPropertiesResource.class);
+    Links.Builder links = new Links.Builder();
+    links.single(
+      link(
+        "update",
+        linkBuilder.method("update").parameters(repository.getNamespace(), repository.getName(), customPropertyDto.getKey()).href()
+      )
     );
-  }
+    links.single(
+      link(
+        "delete",
+        linkBuilder.method("delete").parameters(repository.getNamespace(), repository.getName(), customPropertyDto.getKey()).href()
+      )
+    );
 
-  public record CustomPropertyReplacement(CustomProperty oldEntity, CustomProperty newEntity) {
+    customPropertyDto.add(links.build());
   }
 }

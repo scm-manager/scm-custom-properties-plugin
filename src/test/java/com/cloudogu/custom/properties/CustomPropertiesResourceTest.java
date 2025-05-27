@@ -31,10 +31,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import sonia.scm.repository.Repository;
 import sonia.scm.repository.RepositoryManager;
 import sonia.scm.repository.RepositoryTestData;
+import sonia.scm.store.ConfigurationEntryStoreFactory;
 import sonia.scm.store.DataStore;
-import sonia.scm.store.DataStoreFactory;
+import sonia.scm.store.InMemoryByteConfigurationEntryStoreFactory;
 import sonia.scm.store.InMemoryByteConfigurationStoreFactory;
-import sonia.scm.store.InMemoryByteDataStoreFactory;
 import sonia.scm.web.RestDispatcher;
 
 import java.io.UnsupportedEncodingException;
@@ -56,36 +56,38 @@ import static org.mockito.Mockito.lenient;
 @ExtendWith({MockitoExtension.class, ShiroExtension.class})
 class CustomPropertiesResourceTest {
 
-  private static final String DUMMY_KEY_VALUE = """
+  private static final String TEST_KEY = "hello";
+
+  private static final String TEST_KEY_VALUE = """
     { "key": "hello", "value": "world"}
     """;
 
-  private static final String DUMMY_KEY_VALUE_2_SAME_KEY = """
+  private static final String TEST_KEY_VALUE_2_SAME_KEY = """
     { "key": "hello", "value": "monde"}
     """;
 
-  private static final String DUMMY_KEY_VALUE_2_DIFF_KEY = """
+  private static final String TEST_KEY_VALUE_2_DIFF_KEY = """
     { "key": "ice", "value": "cream"}
     """;
 
-  private static final String DUMMY_KEY_VALUE_JSON = """
+  private static final String TEST_KEY_VALUE_WITH_JSON_LITERAL = """
     { "key": "someJson", "value": "[{'key': 'lorem_ipsum', 'text': 'aöß76&$'}, {'key': 'lorem_ipsum2', 'text': 'hello'}]"}
     """;
 
-  private static final String DUMMY_KEY_VALUE_INVALID_KEY = """
+  private static final String TEST_KEY_VALUE_INVALID_KEY = """
     { "key": "maßband", "value": "12cm"}
     """;
 
-  private static final String DUMMY_KEY_VALUE_HAS_ALL_ALLOWED_KEY_CHARS = """
+  private static final String TEST_KEY_VALUE_WITH_ALL_ALLOWED_KEY_CHARS = """
     { "key": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789. _", "value": "12cm"}
     """;
 
-  private static final String DUMMY_REPLACE_KEY_VALUE = """
-      { "oldKey": "hello", "oldValue": "world", "newKey": "hallo", "newValue": "welt"}
+  private static final String TEST_KEY_VALUE_REPLACEMENT = """
+      {"key": "hallo", "value": "welt"}
     """;
 
-  private static final String DUMMY_REPLACE_KEY_VALUE_INVALID_NEW_KEY = """
-      { "oldKey": "hello", "oldValue": "world", "newKey": "this-is-extreme#", "newValue": "somethingelse"}
+  private static final String TEST_KEY_VALUE_INVALID_REPLACEMENT = """
+      {"key": "this-is-extreme#", "value": "somethingelse"}
     """;
 
   private Repository repository;
@@ -99,7 +101,7 @@ class CustomPropertiesResourceTest {
   @Mock
   private RepositoryManager repositoryManager;
 
-  private final DataStoreFactory storeFactory = new InMemoryByteDataStoreFactory();
+  private final ConfigurationEntryStoreFactory storeFactory = new InMemoryByteConfigurationEntryStoreFactory();
 
   @BeforeEach
   void setUp() {
@@ -200,7 +202,7 @@ class CustomPropertiesResourceTest {
       String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.post(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.content(TEST_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -214,7 +216,7 @@ class CustomPropertiesResourceTest {
       String uri = format("/v2/custom-properties/%s/%s", "bogus", "repo");
       MockHttpRequest request = MockHttpRequest.post(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.content(TEST_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -228,7 +230,7 @@ class CustomPropertiesResourceTest {
       String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.post(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.content(TEST_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -248,14 +250,14 @@ class CustomPropertiesResourceTest {
       String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.post(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.content(TEST_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
 
       MockHttpRequest request2 = MockHttpRequest.post(uri);
       request2.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request2.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request2.content(TEST_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response2 = new MockHttpResponse();
       dispatcher.invoke(request2, response2);
 
@@ -268,14 +270,14 @@ class CustomPropertiesResourceTest {
       String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.post(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.content(TEST_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
 
       MockHttpRequest request2 = MockHttpRequest.post(uri);
       request2.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request2.content(DUMMY_KEY_VALUE_2_SAME_KEY.getBytes(StandardCharsets.UTF_8));
+      request2.content(TEST_KEY_VALUE_2_SAME_KEY.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response2 = new MockHttpResponse();
       dispatcher.invoke(request2, response2);
 
@@ -288,14 +290,14 @@ class CustomPropertiesResourceTest {
       String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.post(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.content(TEST_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
 
       MockHttpRequest request2 = MockHttpRequest.post(uri);
       request2.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request2.content(DUMMY_KEY_VALUE_2_DIFF_KEY.getBytes(StandardCharsets.UTF_8));
+      request2.content(TEST_KEY_VALUE_2_DIFF_KEY.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response2 = new MockHttpResponse();
 
       dispatcher.invoke(request2, response2);
@@ -316,7 +318,7 @@ class CustomPropertiesResourceTest {
       String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.post(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE_JSON.getBytes(StandardCharsets.UTF_8));
+      request.content(TEST_KEY_VALUE_WITH_JSON_LITERAL.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -337,7 +339,7 @@ class CustomPropertiesResourceTest {
       String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.post(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE_INVALID_KEY.getBytes(StandardCharsets.UTF_8));
+      request.content(TEST_KEY_VALUE_INVALID_KEY.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -356,7 +358,7 @@ class CustomPropertiesResourceTest {
       String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.post(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE_HAS_ALL_ALLOWED_KEY_CHARS.getBytes(StandardCharsets.UTF_8));
+      request.content(TEST_KEY_VALUE_WITH_ALL_ALLOWED_KEY_CHARS.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -377,7 +379,7 @@ class CustomPropertiesResourceTest {
       String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.post(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE_HAS_ALL_ALLOWED_KEY_CHARS.getBytes(StandardCharsets.UTF_8));
+      request.content(TEST_KEY_VALUE_WITH_ALL_ALLOWED_KEY_CHARS.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -392,10 +394,10 @@ class CustomPropertiesResourceTest {
     @Test
     @SubjectAware(value = "hasReadPermissionsOnly", permissions = "repository:read:*")
     void shouldReturnUnauthorizedForLackingWritePermissions() throws URISyntaxException {
-      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), "hello");
       MockHttpRequest request = MockHttpRequest.put(uri);
-      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
-      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(TEST_KEY_VALUE_REPLACEMENT.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -408,10 +410,10 @@ class CustomPropertiesResourceTest {
     void shouldRespondNotFoundIfOldEntityDoesntExist() throws URISyntaxException {
       DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
 
-      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), "hallo");
       MockHttpRequest request = MockHttpRequest.put(uri);
-      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
-      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(TEST_KEY_VALUE_REPLACEMENT.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -426,11 +428,10 @@ class CustomPropertiesResourceTest {
     @Test
     @SubjectAware(value = "cannotRead")
     void shouldReturnNotFoundForNonExistingRepository() throws URISyntaxException {
-
-      String uri = format("/v2/custom-properties/%s/%s", "bogus", "repo");
+      String uri = format("/v2/custom-properties/%s/%s/%s", "bogus", "repo", "hello");
       MockHttpRequest request = MockHttpRequest.put(uri);
-      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
-      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(TEST_KEY_VALUE_REPLACEMENT.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -443,12 +444,12 @@ class CustomPropertiesResourceTest {
     void shouldRespondConflictIfNewEntityAlreadyExists() throws URISyntaxException {
       DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
       store.put("hello", new CustomProperty("hello", "world"));
-      store.put("hallo", new CustomProperty("hallo", "welt"));
+      store.put("hallo", new CustomProperty("hallo", "other"));
 
-      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), "hello");
       MockHttpRequest request = MockHttpRequest.put(uri);
-      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
-      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(TEST_KEY_VALUE_REPLACEMENT.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -458,7 +459,7 @@ class CustomPropertiesResourceTest {
       Map<String, CustomProperty> result = store.getAll();
 
       assertThat(result).hasSize(2);
-      assertThat(result.get("hallo").getValue()).isEqualTo("welt");
+      assertThat(result.get("hallo").getValue()).isEqualTo("other");
       assertThat(result.get("hello").getValue()).isEqualTo("world");
     }
 
@@ -468,10 +469,10 @@ class CustomPropertiesResourceTest {
       DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
       store.put("hello", new CustomProperty("hello", "world"));
 
-      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), "hello");
       MockHttpRequest request = MockHttpRequest.put(uri);
-      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
-      request.content(DUMMY_REPLACE_KEY_VALUE_INVALID_NEW_KEY.getBytes(StandardCharsets.UTF_8));
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(TEST_KEY_VALUE_INVALID_REPLACEMENT.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -490,10 +491,10 @@ class CustomPropertiesResourceTest {
       DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
       store.put("hello", new CustomProperty("hello", "world"));
 
-      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), "hello");
       MockHttpRequest request = MockHttpRequest.put(uri);
-      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
-      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(TEST_KEY_VALUE_REPLACEMENT.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -510,10 +511,10 @@ class CustomPropertiesResourceTest {
     @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
     void shouldReturnForbiddenIfPluginIsDisabled() throws URISyntaxException {
       configService.setGlobalConfig(new GlobalConfig(false));
-      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), "hello");
       MockHttpRequest request = MockHttpRequest.put(uri);
-      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
-      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(TEST_KEY_VALUE_REPLACEMENT.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -527,11 +528,11 @@ class CustomPropertiesResourceTest {
       DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
       store.put("hello", new CustomProperty("hello", "world"));
       store.put("hallo", new CustomProperty("hallo", "world"));
-      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), "hello");
 
       MockHttpRequest request = MockHttpRequest.put(uri);
-      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE);
-      request.content(DUMMY_REPLACE_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(TEST_KEY_VALUE_REPLACEMENT.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
       dispatcher.invoke(request, response);
 
@@ -545,10 +546,8 @@ class CustomPropertiesResourceTest {
     @Test
     @SubjectAware(value = "hasReadPermissionsOnly", permissions = "repository:read:*")
     void shouldReturnUnauthorizedForLackingWritePermissions() throws URISyntaxException {
-      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), TEST_KEY);
       MockHttpRequest request = MockHttpRequest.delete(uri);
-      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -559,10 +558,8 @@ class CustomPropertiesResourceTest {
     @Test
     @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
     void shouldDoNothingIfEntityDoesntExist() throws URISyntaxException {
-      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), TEST_KEY);
       MockHttpRequest request = MockHttpRequest.delete(uri);
-      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -574,10 +571,10 @@ class CustomPropertiesResourceTest {
     @SubjectAware(value = "cannotRead")
     void shouldReturnNotFoundForNonExistingRepository() throws URISyntaxException {
 
-      String uri = format("/v2/custom-properties/%s/%s", "bogus", "repo");
+      String uri = format("/v2/custom-properties/%s/%s/%s", "bogus", "repo", TEST_KEY);
       MockHttpRequest request = MockHttpRequest.delete(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.content(TEST_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -591,10 +588,8 @@ class CustomPropertiesResourceTest {
       DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
       store.put("hello", new CustomProperty("hello", "world"));
 
-      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), TEST_KEY);
       MockHttpRequest request = MockHttpRequest.delete(uri);
-      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -613,10 +608,8 @@ class CustomPropertiesResourceTest {
       store.put("hello", new CustomProperty("hello", "world"));
       store.put("lorem", new CustomProperty("lorem", "world"));
 
-      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), TEST_KEY);
       MockHttpRequest request = MockHttpRequest.delete(uri);
-      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -633,10 +626,10 @@ class CustomPropertiesResourceTest {
     @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
     void shouldReturnForbiddenIfPluginIsDisabled() throws URISyntaxException {
       configService.setGlobalConfig(new GlobalConfig(false));
-      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), TEST_KEY);
       MockHttpRequest request = MockHttpRequest.delete(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
-      request.content(DUMMY_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
+      request.content(TEST_KEY_VALUE.getBytes(StandardCharsets.UTF_8));
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);

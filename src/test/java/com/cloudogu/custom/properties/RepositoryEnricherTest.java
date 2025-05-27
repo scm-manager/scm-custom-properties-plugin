@@ -19,6 +19,7 @@ package com.cloudogu.custom.properties;
 import com.cloudogu.custom.properties.config.ConfigService;
 import com.cloudogu.custom.properties.config.GlobalConfig;
 import com.google.inject.util.Providers;
+import de.otto.edison.hal.Links;
 import org.github.sdorra.jse.ShiroExtension;
 import org.github.sdorra.jse.SubjectAware;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +38,7 @@ import sonia.scm.repository.RepositoryTestData;
 import java.net.URI;
 import java.util.List;
 
-import static com.cloudogu.custom.properties.CustomPropertiesContext.LINK_NAME;
+import static de.otto.edison.hal.Link.link;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -70,11 +71,14 @@ class RepositoryEnricherTest {
 
     ScmPathInfoStore scmPathInfoStore = new ScmPathInfoStore();
     scmPathInfoStore.set(() -> URI.create("https://scm-test.de/scm/api/"));
+    CustomPropertyMapper mapper = new CustomPropertyMapperImpl();
+    mapper.setScmPathInfoStore(Providers.of(scmPathInfoStore));
+
     enricher = new RepositoryEnricher(
       Providers.of(scmPathInfoStore),
       customPropertiesService,
       configService,
-      new CustomPropertyMapperImpl()
+      mapper
     );
   }
 
@@ -96,7 +100,7 @@ class RepositoryEnricherTest {
 
   @Test
   @SubjectAware(permissions = {"repository:read:1337"})
-  void shouldEnrichWithCustomPropertiesAsEmbedded() {
+  void shouldEnrichWithCustomPropertiesAsEmbeddedButWithoutLinksBecauseModifyPermissionIsMissing() {
     when(configService.getGlobalConfig()).thenReturn(new GlobalConfig(true));
     when(context.oneRequireByType(Repository.class)).thenReturn(repository);
     when(customPropertiesService.get(repository)).thenReturn(
@@ -114,30 +118,50 @@ class RepositoryEnricherTest {
       new CustomPropertyDto("lang", "java"),
       new CustomPropertyDto("published", "true")
     ));
-  }
 
-  @Test
-  @SubjectAware(permissions = {"repository:read:1337"})
-  void shouldEnrichWithReadCustomPropertyLink() {
-    when(configService.getGlobalConfig()).thenReturn(new GlobalConfig(true));
-    when(context.oneRequireByType(Repository.class)).thenReturn(repository);
-    when(customPropertiesService.get(repository)).thenReturn(List.of());
-    enricher.enrich(context, appender);
-
-    verify(appender).appendLink(LINK_NAME + "Read", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle");
+    Links expectedLinks = new Links.Builder()
+      .self("https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle")
+      .build();
+    assertThat(embedded.getLinks()).isEqualTo(expectedLinks);
   }
 
   @Test
   @SubjectAware(permissions = {"repository:read,modify:1337"})
-  void shouldEnrichWithReadAndWriteCustomPropertyLink() {
+  void shouldEnrichWithCustomPropertiesAsEmbeddedAndWithModificationLinks() {
     when(configService.getGlobalConfig()).thenReturn(new GlobalConfig(true));
     when(context.oneRequireByType(Repository.class)).thenReturn(repository);
-    when(customPropertiesService.get(repository)).thenReturn(List.of());
+    when(customPropertiesService.get(repository)).thenReturn(
+      List.of(
+        new CustomProperty("lang", "java"),
+        new CustomProperty("published", "true")
+      )
+    );
+
     enricher.enrich(context, appender);
 
-    verify(appender).appendLink(LINK_NAME + "Read", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle");
-    verify(appender).appendLink(LINK_NAME + "Create", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle");
-    verify(appender).appendLink(LINK_NAME + "Update", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle");
-    verify(appender).appendLink(LINK_NAME + "Delete", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle");
+    CustomPropertyDto expectedLangDto = new CustomPropertyDto("lang", "java");
+    expectedLangDto.add(new Links.Builder()
+      .single(link("update", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle/lang"))
+      .single(link("delete", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle/lang"))
+      .build()
+    );
+    CustomPropertyDto expectedPublishedDto = new CustomPropertyDto("published", "true");
+    expectedPublishedDto.add(new Links.Builder()
+      .single(link("update", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle/published"))
+      .single(link("delete", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle/published"))
+      .build()
+    );
+
+    verify(appender).appendEmbedded(eq("customProperties"), captor.capture());
+    RepositoryEnricher.CustomPropertyCollection embedded = captor.getValue();
+    assertThat(embedded.getProperties()).isEqualTo(List.of(
+      expectedLangDto, expectedPublishedDto
+    ));
+
+    Links expectedCollectionLinks = new Links.Builder()
+      .self("https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle")
+      .single(link("create", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle"))
+      .build();
+    assertThat(embedded.getLinks()).isEqualTo(expectedCollectionLinks);
   }
 }

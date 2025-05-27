@@ -14,14 +14,9 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
+import { HalRepresentation } from "@scm-manager/ui-types";
+
 export type CustomProperty = {
   key: string;
   value: string;
-};
-
-export type ReplaceCustomProperty = {
-  oldKey: string;
-  oldValue: string;
-  newKey: string;
-  newValue: string;
-};
+} & HalRepresentation;

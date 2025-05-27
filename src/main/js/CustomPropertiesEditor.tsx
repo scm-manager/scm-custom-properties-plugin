@@ -25,30 +25,35 @@ import { useCreateCustomProperty, useEditCustomProperty } from "./hooks";
 
 type Props = {
   repository: Repository;
-  url: string;
 };
 
 const keyRegex = /^[a-zA-Z_ 0-9.]*$/;
 
-const CustomPropertiesEditor: FC<Props> = ({ repository, url }) => {
+const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
   const [t] = useTranslation("plugins");
   const history = useHistory();
-  const [initialState, setInitialState] = useState<CustomProperty>({ key: "", value: "" });
-
-  const { createCustomProperty } = useCreateCustomProperty(repository);
-  const { editCustomProperty } = useEditCustomProperty(repository);
+  const [initialState, setInitialState] = useState<CustomProperty>({ key: "", value: "", _links: {} });
 
   const location = useLocation();
   const queryKey = urls.getValueStringFromLocationByKey(location, "key");
 
-  useEffect(() => setInitialState({ key: queryKey ?? "", value: findValue() }), [queryKey]);
+  const { createCustomProperty } = useCreateCustomProperty(repository);
+  const { editCustomProperty } = useEditCustomProperty(repository);
+
+  useEffect(() => {
+    const customProperty = getCustomPropertyByKey(queryKey ?? "");
+
+    if (customProperty) {
+      setInitialState({ key: queryKey ?? "", value: customProperty.value, _links: customProperty._links });
+    }
+  }, [queryKey]);
 
   const isEditMode = () => {
     return queryKey !== undefined && queryKey.length > 0;
   };
 
   const validateKey = (key: string) => {
-    if (!isEditMode() && getCustomPropertyByKey(key)) {
+    if (getCustomPropertyByKey(key) && key !== queryKey) {
       return t("scm-custom-properties-plugin.editor.key.alreadyExists", { key: key });
     }
 
@@ -67,38 +72,14 @@ const CustomPropertiesEditor: FC<Props> = ({ repository, url }) => {
     );
   };
 
-  const findValue = () => {
-    if (!isEditMode()) {
-      return "";
-    }
-
-    //At this point the key should always be defined.
-    //The nullish coalescing operator is only there to please the compiler.
-    const customProperty = getCustomPropertyByKey(queryKey ?? "");
-
-    if (!customProperty) {
-      //The translation hook, does not seem to work during initial rendering
-      throw new Error(`The provided key '${queryKey}' does not exists for this repository`);
-    }
-
-    return customProperty.value;
-  };
-
   const onSubmit = async (customProperty: CustomProperty) => {
     if (isEditMode()) {
-      await editCustomProperty({
-        newKey: customProperty.key,
-        newValue: customProperty.value,
-        //At this point the key should always be defined.
-        //The nullish coalescing operator is only there to please the compiler.
-        oldKey: queryKey ?? "",
-        oldValue: findValue(),
-      });
+      await editCustomProperty(customProperty);
     } else {
       await createCustomProperty(customProperty);
     }
 
-    history.push(`${url}/custom-properties`);
+    history.push(`/repo/${repository.namespace}/${repository.name}/custom-properties`);
   };
 
   return (

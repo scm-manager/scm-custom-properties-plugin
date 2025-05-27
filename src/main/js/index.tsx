@@ -40,7 +40,9 @@ const CustomPropertiesRoute = ({ url, repository }: { url: string; repository: R
     <Route
       path={`${url}/custom-properties`}
       exact
-      render={() => <CustomPropertiesOverview repository={repository} url={url} />}
+      render={() => {
+        return <CustomPropertiesOverview repository={repository} />;
+      }}
     />
   );
 };
@@ -52,7 +54,7 @@ const CustomPropertiesEditorRoute = ({ url, repository }: { url: string; reposit
     <Route
       path={`${url}/custom-properties/modify`}
       exact
-      render={() => <CustomPropertiesEditor repository={repository} url={url} />}
+      render={() => <CustomPropertiesEditor repository={repository} />}
     />
   );
 };

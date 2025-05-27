@@ -16,17 +16,20 @@
 
 import { HalRepresentation, Link, Repository } from "@scm-manager/ui-types";
 import { useMutation, useQueryClient } from "react-query";
-import { CustomProperty, ReplaceCustomProperty } from "./types";
+import { CustomProperty } from "./types";
 import { apiClient } from "@scm-manager/ui-api";
 
 const customPropertyContentType = "application/vnd.scmm-CustomProperty+json;v=2";
-const replaceCustomPropertyContentType = "application/vnd.scmm-ReplaceCustomProperty+json;v=2";
 
 export const useCreateCustomProperty = (repository: Repository) => {
   const queryClient = useQueryClient();
   const { mutateAsync, isLoading, error } = useMutation<unknown, Error, CustomProperty>(
     (customProperty) =>
-      apiClient.post(requiredLink(repository, "customPropertiesCreate"), customProperty, customPropertyContentType),
+      apiClient.post(
+        requiredLink(repository._embedded?.customProperties as HalRepresentation, "create"),
+        customProperty,
+        customPropertyContentType,
+      ),
     { onSuccess: () => queryClient.invalidateQueries(["repository", repository.namespace, repository.name]) },
   );
 
@@ -35,13 +38,9 @@ export const useCreateCustomProperty = (repository: Repository) => {
 
 export const useEditCustomProperty = (repository: Repository) => {
   const queryClient = useQueryClient();
-  const { mutateAsync, isLoading, error } = useMutation<unknown, Error, ReplaceCustomProperty>(
-    (replaceCustomProperty) =>
-      apiClient.put(
-        requiredLink(repository, "customPropertiesUpdate"),
-        replaceCustomProperty,
-        replaceCustomPropertyContentType,
-      ),
+  const { mutateAsync, isLoading, error } = useMutation<unknown, Error, CustomProperty>(
+    (customProperty) =>
+      apiClient.put(requiredLink(customProperty, "update"), customProperty, customPropertyContentType),
     { onSuccess: () => queryClient.invalidateQueries(["repository", repository.namespace, repository.name]) },
   );
 
@@ -54,10 +53,9 @@ export const useDeleteCustomProperty = (repository: Repository) => {
     (customProperty) =>
       apiClient.httpRequestWithJSONBody(
         "DELETE",
-        requiredLink(repository, "customPropertiesDelete"),
+        requiredLink(customProperty, "delete"),
         customPropertyContentType,
         {},
-        customProperty,
       ),
     { onSuccess: () => queryClient.invalidateQueries(["repository", repository.namespace, repository.name]) },
   );
@@ -65,8 +63,8 @@ export const useDeleteCustomProperty = (repository: Repository) => {
   return { deleteCustomProperty: mutate, isLoading };
 };
 
-const requiredLink = (halObject: HalRepresentation, linkName: string): string => {
-  if (!halObject._links[linkName]) {
+const requiredLink = (halObject: HalRepresentation | undefined, linkName: string): string => {
+  if (!halObject?._links || !halObject?._links[linkName]) {
     throw new Error("You are missing the needed permissions");
   }
   return (halObject._links[linkName] as Link).href;

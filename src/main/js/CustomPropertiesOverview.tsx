@@ -15,10 +15,10 @@
  */
 
 import React, { FC, useState } from "react";
-import { Link, Repository } from "@scm-manager/ui-types";
+import { HalRepresentation, Repository } from "@scm-manager/ui-types";
 import { SubSubtitle, Subtitle, LinkButton, IconButton, Icon, Dialog, Button } from "@scm-manager/ui-core";
 import { useTranslation } from "react-i18next";
-import { PreformattedCodeBlock, SmallLoadingSpinner } from "@scm-manager/ui-components";
+import { SmallLoadingSpinner } from "@scm-manager/ui-components";
 import { CustomProperty } from "./types";
 import styled from "styled-components";
 import { useDeleteCustomProperty } from "./hooks";
@@ -37,8 +37,8 @@ const CustomPropertyAction: FC<CustomPropertyActionProps> = ({ repository, custo
   const [t] = useTranslation("plugins");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const { deleteCustomProperty, isLoading } = useDeleteCustomProperty(repository);
-  const isEditAllowed = repository._links.customPropertiesUpdate !== undefined;
-  const isDeletionAllowed = repository._links.customPropertiesDelete !== undefined;
+  const isEditAllowed = customProperty._links?.update !== undefined;
+  const isDeletionAllowed = customProperty._links?.delete !== undefined;
 
   const confirmDelete = () => {
     setIsDeleteModalOpen(false);
@@ -97,7 +97,7 @@ type CustomPropertiesTableProps = {
 
 const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({ repository, customProperties, modifyUrl }) => {
   const [t] = useTranslation("plugins");
-  const isCreateAllowed = repository._links.customPropertiesCreate !== undefined;
+  const isCreateAllowed = (repository._embedded?.customProperties as HalRepresentation)?._links?.create !== undefined;
   return (
     <table className="table">
       <thead>
@@ -135,24 +135,18 @@ const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({ repository, cus
 
 type Props = {
   repository: Repository;
-  url: string;
 };
 
-const CustomPropertiesOverview: FC<Props> = ({ repository, url }) => {
+const CustomPropertiesOverview: FC<Props> = ({ repository }) => {
   const [t] = useTranslation("plugins");
-  const readLink = (repository._links.customPropertiesRead as unknown as Link).href;
   const customProperties = (repository._embedded?.customProperties as { properties: CustomProperty[] }).properties;
+  const modifyUrl = `/repo/${repository.namespace}/${repository.name}/custom-properties/modify`;
 
   return (
     <>
       <Subtitle>{t("scm-custom-properties-plugin.repository.subtitle")}</Subtitle>
       <SubSubtitle className="mb-2">{t("scm-custom-properties-plugin.repository.api")}</SubSubtitle>
-      <PreformattedCodeBlock>{readLink}</PreformattedCodeBlock>
-      <CustomPropertiesTable
-        repository={repository}
-        customProperties={customProperties}
-        modifyUrl={`${url}/custom-properties/modify`}
-      />
+      <CustomPropertiesTable repository={repository} customProperties={customProperties} modifyUrl={modifyUrl} />
     </>
   );
 };

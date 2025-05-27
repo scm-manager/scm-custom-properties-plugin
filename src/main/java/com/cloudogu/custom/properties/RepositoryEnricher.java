@@ -19,6 +19,8 @@ package com.cloudogu.custom.properties;
 import com.cloudogu.custom.properties.config.ConfigService;
 import com.google.common.annotations.VisibleForTesting;
 import de.otto.edison.hal.HalRepresentation;
+import de.otto.edison.hal.Link;
+import de.otto.edison.hal.Links;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 import lombok.AllArgsConstructor;
@@ -34,8 +36,6 @@ import sonia.scm.repository.Repository;
 import sonia.scm.repository.RepositoryPermissions;
 
 import java.util.Collection;
-
-import static com.cloudogu.custom.properties.CustomPropertiesContext.LINK_NAME;
 
 @Extension
 @Enrich(Repository.class)
@@ -68,20 +68,24 @@ public class RepositoryEnricher implements HalEnricher {
       return;
     }
 
-    LinkBuilder linkBuilder = new LinkBuilder(pathInfoStore.get().get(), CustomPropertiesResource.class);
-    appender.appendLink(LINK_NAME + "Read", linkBuilder.method("read").parameters(repository.getNamespace(), repository.getName()).href());
+    Collection<CustomProperty> properties = customPropertiesService.get(repository);
+    CustomPropertyCollection collection = new CustomPropertyCollection(
+      properties.stream().map(customProperty -> customPropertyMapper.map(customProperty, repository)).toList(),
+      createCollectionLinks(new LinkBuilder(pathInfoStore.get().get(), CustomPropertiesResource.class), repository)
+    );
+    appender.appendEmbedded("customProperties", collection);
+  }
 
-    if (RepositoryPermissions.modify().isPermitted(repository)) {
-      appender.appendLink(LINK_NAME + "Create", linkBuilder.method("create").parameters(repository.getNamespace(), repository.getName()).href());
-      appender.appendLink(LINK_NAME + "Update", linkBuilder.method("update").parameters(repository.getNamespace(), repository.getName()).href());
-      appender.appendLink(LINK_NAME + "Delete", linkBuilder.method("delete").parameters(repository.getNamespace(), repository.getName()).href());
+  private Links createCollectionLinks(LinkBuilder linkBuilder, Repository repository) {
+    String createLink = linkBuilder.method("create").parameters(repository.getNamespace(), repository.getName()).href();
+    Links.Builder links = new Links.Builder();
+    links.self(linkBuilder.method("read").parameters(repository.getNamespace(), repository.getName()).href());
+
+    if (RepositoryPermissions.modify(repository).isPermitted()) {
+      links.single(Link.link("create", createLink));
     }
 
-    Collection<CustomProperty> properties = customPropertiesService.get(repository);
-    appender.appendEmbedded(
-      "customProperties",
-      new CustomPropertyCollection(properties.stream().map(customPropertyMapper::map).toList())
-    );
+    return links.build();
   }
 
   @Getter
@@ -89,5 +93,10 @@ public class RepositoryEnricher implements HalEnricher {
   @VisibleForTesting
   static class CustomPropertyCollection extends HalRepresentation {
     private final Collection<CustomPropertyDto> properties;
+
+    private CustomPropertyCollection(Collection<CustomPropertyDto> properties, Links links) {
+      super(links);
+      this.properties = properties;
+    }
   }
 }

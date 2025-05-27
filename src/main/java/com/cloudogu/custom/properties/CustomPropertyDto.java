@@ -17,6 +17,7 @@
 package com.cloudogu.custom.properties;
 
 import de.otto.edison.hal.HalRepresentation;
+import de.otto.edison.hal.Links;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -35,4 +36,9 @@ public class CustomPropertyDto extends HalRepresentation {
   @Pattern(regexp = "^[a-zA-Z_ 0-9.]*$")
   private String key;
   private String value;
+
+  @Override
+  protected HalRepresentation add(Links links) {
+    return super.add(links);
+  }
 }

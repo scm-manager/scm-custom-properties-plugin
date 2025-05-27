@@ -24,7 +24,7 @@ import sonia.scm.NotFoundException;
 import sonia.scm.repository.Repository;
 import sonia.scm.repository.RepositoryTestData;
 import sonia.scm.store.DataStore;
-import sonia.scm.store.InMemoryByteDataStoreFactory;
+import sonia.scm.store.InMemoryByteConfigurationEntryStoreFactory;
 
 import java.util.Collection;
 
@@ -34,13 +34,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CustomPropertiesServiceTest {
 
   private final Repository repository = RepositoryTestData.createHeartOfGold();
-  private InMemoryByteDataStoreFactory storeFactory;
   private DataStore<CustomProperty> store;
   private CustomPropertiesService customPropertiesService;
 
   @BeforeEach
   void setup() {
-    storeFactory = new InMemoryByteDataStoreFactory();
+    InMemoryByteConfigurationEntryStoreFactory storeFactory = new InMemoryByteConfigurationEntryStoreFactory();
     store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
     customPropertiesService = new CustomPropertiesService(storeFactory);
   }
@@ -88,12 +87,12 @@ class CustomPropertiesServiceTest {
   }
 
   @Nested
-  class ReplaceCustomPropertyTest {
+  class UpdateCustomPropertyTest {
 
     @Test
-    void shouldThrowNotFoundBecauseOldKeyIsUnknown() {
-      assertThatThrownBy(() -> customPropertiesService.replace(
-        repository, new CustomProperty("key1", "value1"), new CustomProperty("key1", "otherValue")
+    void shouldThrowNotFoundBecauseCurrentKeyIsUnknown() {
+      assertThatThrownBy(() -> customPropertiesService.update(
+        repository, "key1", new CustomProperty("key1", "otherValue")
       )).isInstanceOf(NotFoundException.class);
     }
 
@@ -104,8 +103,8 @@ class CustomPropertiesServiceTest {
       store.put(oldCustomProperty.getKey(), oldCustomProperty);
       store.put(otherCustomProperty.getKey(), otherCustomProperty);
 
-      assertThatThrownBy(() -> customPropertiesService.replace(
-        repository, oldCustomProperty, new CustomProperty("other", "new")
+      assertThatThrownBy(() -> customPropertiesService.update(
+        repository, "old", new CustomProperty("other", "new")
       )).isInstanceOf(AlreadyExistsException.class);
     }
 
@@ -117,7 +116,7 @@ class CustomPropertiesServiceTest {
       store.put(otherCustomProperty.getKey(), otherCustomProperty);
 
       CustomProperty newCustomProperty = new CustomProperty("old", "new");
-      customPropertiesService.replace(repository, oldCustomProperty, newCustomProperty);
+      customPropertiesService.update(repository, "old", newCustomProperty);
 
       assertThat(store.getAll()).hasSize(2);
       assertThat(store.get("old")).isEqualTo(newCustomProperty);
@@ -132,7 +131,7 @@ class CustomPropertiesServiceTest {
       store.put(otherCustomProperty.getKey(), otherCustomProperty);
 
       CustomProperty newCustomProperty = new CustomProperty("new", "old");
-      customPropertiesService.replace(repository, oldCustomProperty, newCustomProperty);
+      customPropertiesService.update(repository, "old", newCustomProperty);
 
       assertThat(store.getAll()).hasSize(2);
       assertThat(store.get("new")).isEqualTo(newCustomProperty);
@@ -147,7 +146,7 @@ class CustomPropertiesServiceTest {
       store.put(otherCustomProperty.getKey(), otherCustomProperty);
 
       CustomProperty newCustomProperty = new CustomProperty("new", "new");
-      customPropertiesService.replace(repository, oldCustomProperty, newCustomProperty);
+      customPropertiesService.update(repository, "old", newCustomProperty);
 
       assertThat(store.getAll()).hasSize(2);
       assertThat(store.get("new")).isEqualTo(newCustomProperty);
@@ -161,10 +160,26 @@ class CustomPropertiesServiceTest {
       store.put(oldCustomProperty.getKey(), oldCustomProperty);
       store.put(otherCustomProperty.getKey(), otherCustomProperty);
 
-      customPropertiesService.replace(repository, oldCustomProperty, oldCustomProperty);
+      customPropertiesService.update(repository, "old", oldCustomProperty);
 
       assertThat(store.getAll()).hasSize(2);
       assertThat(store.get("old")).isEqualTo(oldCustomProperty);
+      assertThat(store.get("other")).isEqualTo(otherCustomProperty);
+    }
+
+    @Test
+    void shouldHandleSameUpdateTwice() {
+      CustomProperty oldCustomProperty = new CustomProperty("old", "old");
+      CustomProperty otherCustomProperty = new CustomProperty("other", "other");
+      store.put(oldCustomProperty.getKey(), oldCustomProperty);
+      store.put(otherCustomProperty.getKey(), otherCustomProperty);
+
+      CustomProperty newCustomProperty = new CustomProperty("new", "old");
+      customPropertiesService.update(repository, "old", newCustomProperty);
+      customPropertiesService.update(repository, "old", newCustomProperty);
+
+      assertThat(store.getAll()).hasSize(2);
+      assertThat(store.get("new")).isEqualTo(newCustomProperty);
       assertThat(store.get("other")).isEqualTo(otherCustomProperty);
     }
   }
@@ -175,14 +190,14 @@ class CustomPropertiesServiceTest {
     @Test
     void shouldDeleteNothingBecauseKeyIsUnknown() {
       store.put("key1", new CustomProperty("key1", "value1"));
-      customPropertiesService.delete(repository, new CustomProperty("key2", "value2"));
+      customPropertiesService.delete(repository, "key2");
       assertThat(store.getAll()).hasSize(1);
     }
 
     @Test
     void shouldDeleteExistingCustomPropertyByKey() {
       store.put("key1", new CustomProperty("key1", "value1"));
-      customPropertiesService.delete(repository, new CustomProperty("key1", "value1"));
+      customPropertiesService.delete(repository, "key1");
       assertThat(store.getAll()).hasSize(0);
     }
   }

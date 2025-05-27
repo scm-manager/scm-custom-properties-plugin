@@ -17,26 +17,26 @@
 package com.cloudogu.custom.properties;
 
 import com.google.inject.Inject;
-import sonia.scm.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
-import sonia.scm.AlreadyExistsException;
 import sonia.scm.ContextEntry;
+import sonia.scm.NotFoundException;
 import sonia.scm.repository.Repository;
+import sonia.scm.store.ConfigurationEntryStoreFactory;
 import sonia.scm.store.DataStore;
-import sonia.scm.store.DataStoreFactory;
 
 import java.util.Collection;
 import java.util.Optional;
 
+import static sonia.scm.AlreadyExistsException.alreadyExists;
 import static sonia.scm.NotFoundException.notFound;
 
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 @Slf4j
 public class CustomPropertiesService {
-  private final DataStoreFactory storeFactory;
-  private static final String CUSTOM_PROPERTY = "Custom property "; // constant in order to avoid Sonar complaints.
+  private final ConfigurationEntryStoreFactory storeFactory;
 
   @Inject
-  CustomPropertiesService(DataStoreFactory storeFactory) {
+  CustomPropertiesService(ConfigurationEntryStoreFactory storeFactory) {
     this.storeFactory = storeFactory;
   }
 
@@ -50,40 +50,67 @@ public class CustomPropertiesService {
     DataStore<CustomProperty> store = createStore(repository);
     Optional<CustomProperty> entityInDb = store.getOptional(entity.getKey());
     if (entityInDb.isPresent()) {
-      throw AlreadyExistsException.alreadyExists(ContextEntry.ContextBuilder.entity("custom-property", entity.getKey()).in(repository));
+      throw alreadyExists(ContextEntry.ContextBuilder.entity("custom-property", entity.getKey()).in(repository));
     } else {
       store.put(entity.getKey(), entity);
     }
   }
 
-  void replace(Repository repository, CustomProperty oldEntity, CustomProperty newEntity) {
-    log.trace("Updating custom property {} to {} on {}", oldEntity, newEntity, repository);
-    DataStore<CustomProperty> store = createStore(repository);
-    CustomProperty oldEntityInDb = store
-      .getOptional(oldEntity.getKey())
-      .orElseThrow(() -> notFound(
-        ContextEntry.ContextBuilder.entity("custom-property", oldEntity.getKey()).in(repository)
-      ));
-
-    boolean hasKeyChanged = !oldEntity.getKey().equals(newEntity.getKey());
-    if (store.getOptional(newEntity.getKey()).isPresent() && hasKeyChanged) {
-      throw AlreadyExistsException.alreadyExists(ContextEntry.ContextBuilder.entity("custom-property", newEntity.getKey()).in(repository));
-    }
-
-    store.put(newEntity.getKey(), newEntity);
+  void update(Repository repository, String currentKey, CustomProperty updatedEntity) {
+    log.trace("Updating custom property {} to {} on {}", currentKey, updatedEntity, repository);
+    boolean hasKeyChanged = !currentKey.equals(updatedEntity.getKey());
     if (hasKeyChanged) {
-      store.remove(oldEntityInDb.getKey());
+      replaceEntity(repository, currentKey, updatedEntity);
+    } else {
+      updateValue(repository, updatedEntity);
     }
   }
 
-  void delete(Repository repository, CustomProperty entity) throws NotFoundException {
-    log.trace("Deleting custom property {} on {}", entity, repository);
+  private void updateValue(Repository repository, CustomProperty updatedEntity) {
     DataStore<CustomProperty> store = createStore(repository);
-    Optional<CustomProperty> entityInDb = store.getOptional(entity.getKey());
-    if (entityInDb.isEmpty()) {
+    CustomProperty currentEntity = store.getOptional(updatedEntity.getKey()).orElseThrow(() -> notFound(
+      ContextEntry.ContextBuilder.entity("custom-property", updatedEntity.getKey()).in(repository)
+    ));
+
+    if (currentEntity.equals(updatedEntity)) {
       return;
     }
-    store.remove(entity.getKey());
+
+    store.put(updatedEntity.getKey(), updatedEntity);
+  }
+
+  private void replaceEntity(Repository repository, String currentKey, CustomProperty updatedEntity) {
+    DataStore<CustomProperty> store = createStore(repository);
+    Optional<CustomProperty> currentEntityInDb = store.getOptional(currentKey);
+    Optional<CustomProperty> alreadyUpdatedEntityInDb = store.getOptional(updatedEntity.getKey());
+    if (isChangeAlreadyDone(currentEntityInDb, alreadyUpdatedEntityInDb, updatedEntity)) {
+      return;
+    }
+
+    if (isKeyAlreadyInUse(alreadyUpdatedEntityInDb, updatedEntity)) {
+      throw alreadyExists(
+        ContextEntry.ContextBuilder.entity("custom-property", updatedEntity.getKey()).in(repository)
+      );
+    }
+
+    store.put(updatedEntity.getKey(), updatedEntity);
+    if (currentEntityInDb.isPresent()) {
+      store.remove(currentKey);
+    }
+  }
+
+  private boolean isChangeAlreadyDone(Optional<CustomProperty> currentEntityInDb, Optional<CustomProperty> updatedEntityInDb, CustomProperty updatedEntity) {
+    return currentEntityInDb.isEmpty() && updatedEntityInDb.isPresent() && updatedEntityInDb.get().equals(updatedEntity);
+  }
+
+  private boolean isKeyAlreadyInUse(Optional<CustomProperty> updatedEntityInDb, CustomProperty updatedEntity) {
+    return updatedEntityInDb.isPresent() && !updatedEntityInDb.get().equals(updatedEntity);
+  }
+
+  void delete(Repository repository, String key) throws NotFoundException {
+    log.trace("Deleting custom property with key {} on {}", key, repository);
+    DataStore<CustomProperty> store = createStore(repository);
+    store.getOptional(key).ifPresent(customProperty -> store.remove(key));
   }
 
   private DataStore<CustomProperty> createStore(Repository repository) {

@@ -36,7 +36,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import sonia.scm.ContextEntry;
 import sonia.scm.api.v2.resources.ErrorDto;
 import sonia.scm.repository.NamespaceAndName;
@@ -56,7 +55,6 @@ import static sonia.scm.NotFoundException.notFound;
 public class CustomPropertiesResource {
 
   public static final String PROPERTY_KEY_VALUE_MEDIA_TYPE = VndMediaType.PREFIX + "CustomProperty" + VndMediaType.SUFFIX;
-  public static final String PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE = VndMediaType.PREFIX + "ReplaceCustomProperty" + VndMediaType.SUFFIX;
 
   private final RepositoryManager repositoryManager;
   private final CustomPropertiesService service;
@@ -77,8 +75,8 @@ public class CustomPropertiesResource {
   @GET
   @Path("/{namespace}/{name}")
   @Operation(
-    summary = "Get all repository key-value pairs",
-    description = "Gets all key-value pairs from the specified repository, if available.",
+    summary = "Get all custom properties for the repository",
+    description = "Gets all custom properties for the specified repository, if available.",
     tags = "Custom Properties",
     operationId = "custom-properties_get_all_repository_key_values"
   )
@@ -101,18 +99,18 @@ public class CustomPropertiesResource {
     RepositoryPermissions.read(repository).check();
 
     Collection<CustomProperty> entities = service.get(repository);
-    return customPropertyMapper.mapToDtoCollection(entities);
+    return customPropertyMapper.mapToDtoCollection(entities, repository);
   }
 
   @POST
   @Path("/{namespace}/{name}")
   @Operation(
-    summary = "Creates repository key-value pair",
-    description = "Creates a key-value pairs for the specified repository, if valid.",
+    summary = "Creates custom property for repository",
+    description = "Creates a custom property for the specified repository with a unique key, if valid.",
     tags = "Custom Properties",
     operationId = "custom-properties_create_repository_key_value"
   )
-  @ApiResponse(responseCode = "200", description = "create success")
+  @ApiResponse(responseCode = "204", description = "create success")
   @ApiResponse(responseCode = "401", description = "not authenticated / invalid credentials")
   @ApiResponse(responseCode = "403", description = "not authorized, the current user does not have the general repository write privilege, or plugin deactivated")
   @ApiResponse(responseCode = "409", description = "already exists")
@@ -125,31 +123,29 @@ public class CustomPropertiesResource {
     )
   )
   @Consumes(PROPERTY_KEY_VALUE_MEDIA_TYPE)
-  public Response create(@PathParam("namespace") String namespace,
+  public void create(@PathParam("namespace") String namespace,
                          @PathParam("name") String name,
-                         @NotNull @Valid CustomPropertyDto customPropertyDto) {
+                         @NotNull @Valid CustomPropertyDto contentDto) {
     checkIsFeatureEnabled();
     Repository repository = tryToGetRepository(namespace, name);
     RepositoryPermissions.modify(repository).check();
 
-    service.create(repository, customPropertyMapper.map(customPropertyDto));
-
-    return Response.noContent().build();
+    service.create(repository, customPropertyMapper.map(contentDto));
   }
 
   @PUT
-  @Path("/{namespace}/{name}")
+  @Path("/{namespace}/{name}/{key}")
   @Operation(
-    summary = "Replaces repository key-value pair",
-    description = "Replaces a key-value pair for the specified repository, if valid and existing.",
+    summary = "Replaces custom property for repository",
+    description = "Replaces a custom property for the specified repository, if valid and existing.",
     tags = "Custom Properties",
     operationId = "custom-properties_replace_repository_key_value"
   )
-  @ApiResponse(responseCode = "200", description = "replace success")
+  @ApiResponse(responseCode = "204", description = "replace success")
   @ApiResponse(responseCode = "401", description = "not authenticated / invalid credentials")
   @ApiResponse(responseCode = "403", description = "not authorized, the current user does not have the general repository write privilege, or plugin deactivated")
   @ApiResponse(responseCode = "404", description = "not found")
-  @ApiResponse(responseCode = "409", description = "new key-value pair already exists")
+  @ApiResponse(responseCode = "409", description = "new custom property already exists")
   @ApiResponse(
     responseCode = "500",
     description = "internal server error",
@@ -158,23 +154,21 @@ public class CustomPropertiesResource {
       schema = @Schema(implementation = ErrorDto.class)
     )
   )
-  @Consumes(PROPERTY_KEY_VALUE_REPLACE_MEDIA_TYPE)
-  public Response update(@PathParam("namespace") String namespace,
+  @Consumes(PROPERTY_KEY_VALUE_MEDIA_TYPE)
+  public void update(@PathParam("namespace") String namespace,
                          @PathParam("name") String name,
-                         @NotNull @Valid ReplaceCustomPropertyDto replaceCustomPropertyDto) {
+                         @PathParam("key") String key,
+                         @NotNull @Valid CustomPropertyDto replacementDto) {
     checkIsFeatureEnabled();
     Repository repository = tryToGetRepository(namespace, name);
     RepositoryPermissions.modify(repository).check();
 
-    CustomPropertyMapper.CustomPropertyReplacement replacement = customPropertyMapper.map(replaceCustomPropertyDto);
-    service.replace(repository, replacement.oldEntity(), replacement.newEntity());
-
-    return Response.noContent().build();
+    service.update(repository, key, customPropertyMapper.map(replacementDto));
   }
 
   @Operation(
-    summary = "Deletes repository key-value pair",
-    description = "Deletes a key-value pair for the specified repository, if existing.",
+    summary = "Deletes custom property from repository",
+    description = "Deletes a custom property for the specified repository, if existing.",
     tags = "Custom Properties",
     operationId = "custom-properties_delete_repository_key_value"
   )
@@ -191,17 +185,15 @@ public class CustomPropertiesResource {
     )
   )
   @DELETE
-  @Path("/{namespace}/{name}")
-  @Consumes(PROPERTY_KEY_VALUE_MEDIA_TYPE)
-  public Response delete(@PathParam("namespace") String namespace,
+  @Path("/{namespace}/{name}/{key}")
+  public void delete(@PathParam("namespace") String namespace,
                          @PathParam("name") String name,
-                         @NotNull @Valid CustomPropertyDto customPropertyDto) {
+                         @PathParam("key") String key) {
     checkIsFeatureEnabled();
     Repository repository = tryToGetRepository(namespace, name);
     RepositoryPermissions.modify(repository).check();
 
-    service.delete(repository, customPropertyMapper.map(customPropertyDto));
-    return Response.noContent().build();
+    service.delete(repository, key);
   }
 
   private void checkIsFeatureEnabled() {
