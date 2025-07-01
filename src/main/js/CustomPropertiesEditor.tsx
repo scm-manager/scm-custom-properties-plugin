@@ -27,7 +27,7 @@ type Props = {
   repository: Repository;
 };
 
-const keyRegex = /^[a-zA-Z_ 0-9.]*$/;
+const keyRegex = /^[a-zA-Z_ 0-9.\-:@/]*$/;
 
 const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
   const [t] = useTranslation("plugins");

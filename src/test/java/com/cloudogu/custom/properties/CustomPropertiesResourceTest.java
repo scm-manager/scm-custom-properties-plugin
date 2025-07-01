@@ -79,7 +79,7 @@ class CustomPropertiesResourceTest {
     """;
 
   private static final String TEST_KEY_VALUE_WITH_ALL_ALLOWED_KEY_CHARS = """
-    { "key": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789. _", "value": "12cm"}
+    { "key": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789. _-:@/", "value": "12cm"}
     """;
 
   private static final String TEST_KEY_VALUE_REPLACEMENT = """
@@ -88,6 +88,10 @@ class CustomPropertiesResourceTest {
 
   private static final String TEST_KEY_VALUE_INVALID_REPLACEMENT = """
       {"key": "this-is-extreme#", "value": "somethingelse"}
+    """;
+
+  private static final String TEST_KEY_WITH_EXTRA_CHARACTERS = """
+      {"key": "", "value": "AdditionalCharacters"}
     """;
 
   private Repository repository;
@@ -369,7 +373,7 @@ class CustomPropertiesResourceTest {
       Map<String, CustomProperty> values = store.getAll();
 
       assertThat(values).hasSize(1);
-      assertThat(values.get("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789. _")).isNotNull();
+      assertThat(values.get("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789. _-:@/")).isNotNull();
     }
 
     @Test
@@ -505,6 +509,28 @@ class CustomPropertiesResourceTest {
 
       assertThat(result).hasSize(1);
       assertThat(result.get("hallo").getValue()).isEqualTo("welt");
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldSupportAllKeys() throws URISyntaxException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      store.put("hello", new CustomProperty("hello", "world"));
+
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), "hello");
+      MockHttpRequest request = MockHttpRequest.put(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.content(TEST_KEY_VALUE_WITH_ALL_ALLOWED_KEY_CHARS.getBytes(StandardCharsets.UTF_8));
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NO_CONTENT.getStatusCode());
+
+      Map<String, CustomProperty> result = store.getAll();
+
+      assertThat(result).hasSize(1);
+      assertThat(result.get("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789. _-:@/").getValue()).isEqualTo("12cm");
     }
 
     @Test

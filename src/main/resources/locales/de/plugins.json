@@ -25,7 +25,7 @@
       "key": {
         "label": "Schlüssel",
         "tooLong": "Der Schlüssel überschreitet die maximale Länge von 255 Zeichen",
-        "invalidChars": "Für den Schlüssel sind nur Buchstaben, Ziffern, Leerzeichen, Punkt und Unterstrich erlaubt",
+        "invalidChars": "Für den Schlüssel sind nur folgende Zeichen erlaubt: Leerzeichen a-z A-Z 0-9 _ . - : @ /",
         "alreadyExists": "Der angegebene Schlüssel \"{{key}}\" existiert bereits für dieses Repository"
       },
       "submitSuccessCreate": "Die benutzerdefinierte Eigenschaft wurde erfolgreich erstellt",

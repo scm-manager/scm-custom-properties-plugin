@@ -25,7 +25,7 @@
       "key": {
         "label": "Key",
         "tooLong": "The maximum length of a key is 255 characters",
-        "invalidChars": "Keys are only allowed to contain letters, numbers, spaces, periods and underscores",
+        "invalidChars": "Keys are only allowed to contain the following characters: Space a-z A-Z 0-9 _ . - : @ /",
         "alreadyExists": "The provided key '{{key}}' already exists for this repository"
       },
       "submitSuccessCreate": "The custom property was successfully created",

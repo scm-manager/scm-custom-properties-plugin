@@ -33,7 +33,7 @@ import org.hibernate.validator.constraints.Length;
 @EqualsAndHashCode(callSuper = true)
 public class CustomPropertyDto extends HalRepresentation {
   @Length(max = 255)
-  @Pattern(regexp = "^[a-zA-Z_ 0-9.]*$")
+  @Pattern(regexp = "^[a-zA-Z_ 0-9.\\-:@/]*$")
   private String key;
   private String value;
 
