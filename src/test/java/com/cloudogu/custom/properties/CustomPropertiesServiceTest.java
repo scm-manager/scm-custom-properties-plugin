@@ -19,29 +19,49 @@ package com.cloudogu.custom.properties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import sonia.scm.AlreadyExistsException;
 import sonia.scm.NotFoundException;
+import sonia.scm.event.ScmEventBus;
 import sonia.scm.repository.Repository;
 import sonia.scm.repository.RepositoryTestData;
 import sonia.scm.store.DataStore;
 import sonia.scm.store.InMemoryByteConfigurationEntryStoreFactory;
 
 import java.util.Collection;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 class CustomPropertiesServiceTest {
+
+  @Mock
+  ScmEventBus eventBus;
+  @Captor
+  ArgumentCaptor<Object> eventCaptor;
 
   private final Repository repository = RepositoryTestData.createHeartOfGold();
   private DataStore<CustomProperty> store;
   private CustomPropertiesService customPropertiesService;
 
   @BeforeEach
+  void initEventBus() {
+    lenient().doNothing().when(eventBus).post(eventCaptor.capture());
+  }
+
+  @BeforeEach
   void setup() {
     InMemoryByteConfigurationEntryStoreFactory storeFactory = new InMemoryByteConfigurationEntryStoreFactory();
     store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
-    customPropertiesService = new CustomPropertiesService(storeFactory);
+    customPropertiesService = new CustomPropertiesService(storeFactory,eventBus);
   }
 
   @Nested
@@ -83,6 +103,11 @@ class CustomPropertiesServiceTest {
 
       assertThat(store.get("key1")).isEqualTo(new CustomProperty("key1", "value1"));
       assertThat(store.get("key2")).isEqualTo(new CustomProperty("key2", "value2"));
+
+      CustomPropertyCreateEvent event = (CustomPropertyCreateEvent) eventCaptor.getValue();
+      assertThat(event).isInstanceOf(CustomPropertyCreateEvent.class);
+      assertThat(event.getProperty()).isEqualTo(new CustomProperty("key1", "value1"));
+      assertThat(event.getRepository()).isEqualTo(repository);
     }
   }
 
@@ -121,6 +146,12 @@ class CustomPropertiesServiceTest {
       assertThat(store.getAll()).hasSize(2);
       assertThat(store.get("old")).isEqualTo(newCustomProperty);
       assertThat(store.get("other")).isEqualTo(otherCustomProperty);
+
+      CustomPropertyUpdateEvent event = (CustomPropertyUpdateEvent) eventCaptor.getValue();
+      assertThat(event).isInstanceOf(CustomPropertyUpdateEvent.class);
+      assertThat(event.getProperty()).isEqualTo(newCustomProperty);
+      assertThat(event.getPreviousProperty()).isEqualTo(Optional.of(oldCustomProperty));
+      assertThat(event.getRepository()).isEqualTo(repository);
     }
 
     @Test
@@ -136,6 +167,12 @@ class CustomPropertiesServiceTest {
       assertThat(store.getAll()).hasSize(2);
       assertThat(store.get("new")).isEqualTo(newCustomProperty);
       assertThat(store.get("other")).isEqualTo(otherCustomProperty);
+
+      CustomPropertyUpdateEvent event = (CustomPropertyUpdateEvent) eventCaptor.getValue();
+      assertThat(event).isInstanceOf(CustomPropertyUpdateEvent.class);
+      assertThat(event.getProperty()).isEqualTo(newCustomProperty);
+      assertThat(event.getPreviousProperty()).isEqualTo(Optional.of(oldCustomProperty));
+      assertThat(event.getRepository()).isEqualTo(repository);
     }
 
     @Test
@@ -151,6 +188,12 @@ class CustomPropertiesServiceTest {
       assertThat(store.getAll()).hasSize(2);
       assertThat(store.get("new")).isEqualTo(newCustomProperty);
       assertThat(store.get("other")).isEqualTo(otherCustomProperty);
+
+      CustomPropertyUpdateEvent event = (CustomPropertyUpdateEvent) eventCaptor.getValue();
+      assertThat(event).isInstanceOf(CustomPropertyUpdateEvent.class);
+      assertThat(event.getProperty()).isEqualTo(newCustomProperty);
+      assertThat(event.getPreviousProperty()).isEqualTo(Optional.of(oldCustomProperty));
+      assertThat(event.getRepository()).isEqualTo(repository);
     }
 
     @Test
@@ -165,6 +208,8 @@ class CustomPropertiesServiceTest {
       assertThat(store.getAll()).hasSize(2);
       assertThat(store.get("old")).isEqualTo(oldCustomProperty);
       assertThat(store.get("other")).isEqualTo(otherCustomProperty);
+
+      verifyNoInteractions(eventBus);
     }
 
     @Test
@@ -181,6 +226,12 @@ class CustomPropertiesServiceTest {
       assertThat(store.getAll()).hasSize(2);
       assertThat(store.get("new")).isEqualTo(newCustomProperty);
       assertThat(store.get("other")).isEqualTo(otherCustomProperty);
+
+      CustomPropertyUpdateEvent event = (CustomPropertyUpdateEvent) eventCaptor.getValue();
+      assertThat(event).isInstanceOf(CustomPropertyUpdateEvent.class);
+      assertThat(event.getProperty()).isEqualTo(newCustomProperty);
+      assertThat(event.getPreviousProperty()).isEqualTo(Optional.of(oldCustomProperty));
+      assertThat(event.getRepository()).isEqualTo(repository);
     }
   }
 
@@ -199,6 +250,11 @@ class CustomPropertiesServiceTest {
       store.put("key1", new CustomProperty("key1", "value1"));
       customPropertiesService.delete(repository, "key1");
       assertThat(store.getAll()).hasSize(0);
+
+      CustomPropertyDeleteEvent event = (CustomPropertyDeleteEvent) eventCaptor.getValue();
+      assertThat(event).isInstanceOf(CustomPropertyDeleteEvent.class);
+      assertThat(event.getProperty()).isEqualTo(new CustomProperty("key1", "value1"));
+      assertThat(event.getRepository()).isEqualTo(repository);
     }
   }
 }

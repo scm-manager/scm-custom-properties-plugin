@@ -46,6 +46,13 @@
       "footer": {
         "add": "Add new custom property"
       }
+    },
+    "search": {
+      "invalidResult": "Found invalid search result",
+      "customProperty": {
+        "key": "Key: {{key}}",
+        "value": "Value: {{value}}"
+      }
     }
   },
   "permissions": {
@@ -54,6 +61,29 @@
         "customProperties": {
           "displayName": "Modify global configuration for custom properties",
           "description": "May modify global configuration for custom properties"
+        }
+      }
+    }
+  },
+  "search": {
+    "types": {
+      "indexedCustomProperty": {
+        "title": "Custom Properties",
+        "subtitle": "Custom Properties",
+        "navItem": "Custom Properties",
+        "fields": {
+          "key": {
+            "exampleValue": "lang",
+            "hints": "The key of a custom property"
+          },
+          "value": {
+            "exampleValue": "java",
+            "hints": "The value of a custom property"
+          },
+          "property": {
+            "exampleValue": "\"lang=java\"",
+            "hints": "The key value pair of a custom property. They must be provided with quotes and combined with '='."
+          }
         }
       }
     }

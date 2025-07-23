@@ -20,6 +20,7 @@ import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import sonia.scm.ContextEntry;
 import sonia.scm.NotFoundException;
+import sonia.scm.event.ScmEventBus;
 import sonia.scm.repository.Repository;
 import sonia.scm.store.ConfigurationEntryStoreFactory;
 import sonia.scm.store.DataStore;
@@ -34,10 +35,12 @@ import static sonia.scm.NotFoundException.notFound;
 @Slf4j
 public class CustomPropertiesService {
   private final ConfigurationEntryStoreFactory storeFactory;
+  private final ScmEventBus eventBus;
 
   @Inject
-  CustomPropertiesService(ConfigurationEntryStoreFactory storeFactory) {
+  CustomPropertiesService(ConfigurationEntryStoreFactory storeFactory, ScmEventBus eventBus) {
     this.storeFactory = storeFactory;
+    this.eventBus = eventBus;
   }
 
   Collection<CustomProperty> get(Repository repository) {
@@ -53,6 +56,7 @@ public class CustomPropertiesService {
       throw alreadyExists(ContextEntry.ContextBuilder.entity("custom-property", entity.getKey()).in(repository));
     } else {
       store.put(entity.getKey(), entity);
+      eventBus.post(new CustomPropertyCreateEvent(repository, entity));
     }
   }
 
@@ -77,13 +81,20 @@ public class CustomPropertiesService {
     }
 
     store.put(updatedEntity.getKey(), updatedEntity);
+    eventBus.post(
+      new CustomPropertyUpdateEvent(
+        repository,
+        new CustomProperty(updatedEntity.getKey(), updatedEntity.getValue()),
+        new CustomProperty(currentEntity.getKey(), currentEntity.getValue())
+      )
+    );
   }
 
   private void replaceEntity(Repository repository, String currentKey, CustomProperty updatedEntity) {
     DataStore<CustomProperty> store = createStore(repository);
-    Optional<CustomProperty> currentEntityInDb = store.getOptional(currentKey);
+    Optional<CustomProperty> outdatedEntityInDb = store.getOptional(currentKey);
     Optional<CustomProperty> alreadyUpdatedEntityInDb = store.getOptional(updatedEntity.getKey());
-    if (isChangeAlreadyDone(currentEntityInDb, alreadyUpdatedEntityInDb, updatedEntity)) {
+    if (isChangeAlreadyDone(outdatedEntityInDb, alreadyUpdatedEntityInDb, updatedEntity)) {
       return;
     }
 
@@ -94,9 +105,19 @@ public class CustomPropertiesService {
     }
 
     store.put(updatedEntity.getKey(), updatedEntity);
-    if (currentEntityInDb.isPresent()) {
+    if (outdatedEntityInDb.isPresent()) {
       store.remove(currentKey);
     }
+
+    eventBus.post(
+      new CustomPropertyUpdateEvent(
+        repository,
+        new CustomProperty(updatedEntity.getKey(), updatedEntity.getValue()),
+        outdatedEntityInDb.map(
+          customProperty -> new CustomProperty(customProperty.getKey(), customProperty.getValue())
+        ).orElse(null)
+      )
+    );
   }
 
   private boolean isChangeAlreadyDone(Optional<CustomProperty> currentEntityInDb, Optional<CustomProperty> updatedEntityInDb, CustomProperty updatedEntity) {
@@ -110,7 +131,11 @@ public class CustomPropertiesService {
   void delete(Repository repository, String key) throws NotFoundException {
     log.trace("Deleting custom property with key {} on {}", key, repository);
     DataStore<CustomProperty> store = createStore(repository);
-    store.getOptional(key).ifPresent(customProperty -> store.remove(key));
+    store.getOptional(key).ifPresent(
+      customProperty -> {
+        eventBus.post(new CustomPropertyDeleteEvent(repository, customProperty));
+        store.remove(key);
+      });
   }
 
   private DataStore<CustomProperty> createStore(Repository repository) {

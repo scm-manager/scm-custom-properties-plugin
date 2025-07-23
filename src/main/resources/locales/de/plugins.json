@@ -46,6 +46,13 @@
       "footer": {
         "add": "Neuen Eintrag erstellen"
       }
+    },
+    "search": {
+      "invalidResult": "Ungültiges Suchergebnis gefunden",
+      "customProperty": {
+        "key": "Schlüssel: {{key}}",
+        "value": "Wert: {{value}}"
+      }
     }
   },
   "permissions": {
@@ -54,6 +61,29 @@
         "customProperties": {
           "displayName": "Globale Konfiguration für benutzerdefinierte Eigenschaften ändern",
           "description": "Darf die globale Konfiguration für benutzerdefinierte Eigenschaften verändern"
+        }
+      }
+    }
+  },
+  "search": {
+    "types": {
+      "indexedCustomProperty": {
+        "title": "Benutzerdefinierte Eigenschaften",
+        "subtitle": "Benutzerdefinierte Eigenschaften",
+        "navItem": "Benutzerdefinierte Eigenschaften",
+        "fields": {
+          "key": {
+            "exampleValue": "lang",
+            "hints": "Der Schlüssel einer benutzerdefinierten Eigenschaft"
+          },
+          "value": {
+            "exampleValue": "java",
+            "hints": "Der Wert einer benutzerdefinierten Eigenschaft"
+          },
+          "property": {
+            "exampleValue": "\"lang=java\"",
+            "hints": "Das Schlüssel-Wert-Paar einer benutzerdefinierten Eigenschaft. Diese müssen in Anführungszeichen und mit einem '=' verknüpft werden."
+          }
         }
       }
     }

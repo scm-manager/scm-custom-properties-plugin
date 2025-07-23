@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import sonia.scm.event.ScmEventBus;
 import sonia.scm.repository.Repository;
 import sonia.scm.repository.RepositoryManager;
 import sonia.scm.repository.RepositoryTestData;
@@ -55,6 +56,9 @@ import static org.mockito.Mockito.lenient;
 
 @ExtendWith({MockitoExtension.class, ShiroExtension.class})
 class CustomPropertiesResourceTest {
+
+  @Mock
+  ScmEventBus eventBus;
 
   private static final String TEST_KEY = "hello";
 
@@ -113,7 +117,7 @@ class CustomPropertiesResourceTest {
     this.configService = new ConfigService(new InMemoryByteConfigurationStoreFactory());
     CustomPropertiesResource resource = new CustomPropertiesResource(
       repositoryManager,
-      new CustomPropertiesService(storeFactory),
+      new CustomPropertiesService(storeFactory,eventBus),
       configService,
       customPropertyMapper
     );

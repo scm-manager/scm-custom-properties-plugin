@@ -23,6 +23,7 @@ import GlobalCustomPropertiesConfiguration from "./GlobalCustomPropertiesConfigu
 import CustomPropertiesOverview from "./CustomPropertiesOverview";
 import CustomPropertiesNavLink from "./CustomPropertiesNavLink";
 import CustomPropertiesEditor from "./CustomPropertiesEditor";
+import CustomPropertyHitRenderer from "./CustomPropertyHitRenderer";
 
 const CustomPropertiesPredicate = ({ repository }: { repository: Repository }) => {
   return repository._embedded?.customProperties;
@@ -59,6 +60,8 @@ const CustomPropertiesEditorRoute = ({ url, repository }: { url: string; reposit
   );
 };
 binder.bind("repository.route", CustomPropertiesEditorRoute, CustomPropertiesPredicate);
+
+binder.bind("search.hit.indexedCustomProperty.renderer", CustomPropertyHitRenderer);
 
 ConfigurationBinder.bindGlobal(
   "/custom-properties",

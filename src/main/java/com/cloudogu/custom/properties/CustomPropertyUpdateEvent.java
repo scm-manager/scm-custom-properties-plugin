@@ -16,26 +16,21 @@
 
 package com.cloudogu.custom.properties;
 
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import sonia.scm.event.Event;
+import sonia.scm.repository.Repository;
 
-import java.io.Serializable;
+import java.util.Optional;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@XmlRootElement(name = "customProperty")
-@XmlAccessorType(XmlAccessType.FIELD)
-public class CustomProperty implements Comparable<CustomProperty>, Serializable {
-  private String key;
-  private String value;
+@Event
+public class CustomPropertyUpdateEvent extends BasicCustomPropertyEvent{
+  private final CustomProperty previousProperty;
 
-  @Override
-  public int compareTo(CustomProperty customProperty) {
-    return this.key.compareTo(customProperty.getKey());
+  public CustomPropertyUpdateEvent(Repository repository, CustomProperty property, CustomProperty previousProperty) {
+    super(repository, property);
+    this.previousProperty = previousProperty;
+  }
+
+  public Optional<CustomProperty> getPreviousProperty() {
+    return Optional.of(previousProperty);
   }
 }
