@@ -32,9 +32,9 @@ public class IndexedCustomProperty implements Comparable<CustomProperty>, Serial
 
   static final int VERSION = 1;
 
-  @Indexed(type = Indexed.Type.SEARCHABLE)
+  @Indexed(type = Indexed.Type.SEARCHABLE, defaultQuery = true)
   private String key;
-  @Indexed(type = Indexed.Type.SEARCHABLE)
+  @Indexed(type = Indexed.Type.SEARCHABLE, defaultQuery = true)
   private String value;
 
   //Combined field containing the "key=value" string, indexed for search.
