@@ -1,7 +1,7 @@
 {
     "name": "@scm-manager/scm-custom-properties-plugin",
     "private": true,
-    "version": "1.0.1-SNAPSHOT",
+    "version": "1.1.0",
     "license": "AGPL-3.0-only",
     "main": "./src/main/js/index.tsx",
     "scripts": {
