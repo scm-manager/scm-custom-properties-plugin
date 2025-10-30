@@ -28,6 +28,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -35,6 +36,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import sonia.scm.ContextEntry;
 import sonia.scm.api.v2.resources.ErrorDto;
@@ -131,6 +133,37 @@ public class CustomPropertiesResource {
     RepositoryPermissions.modify(repository).check();
 
     service.create(repository, customPropertyMapper.map(contentDto));
+  }
+
+  @GET
+  @Path("/{namespace}/{name}/predefined-keys")
+  @Operation(
+    summary = "Get all predefined custom property keys for the repository",
+    description = "Gets all predefined custom property keys for the specified repository, if available.",
+    tags = "Custom Properties",
+    operationId = "custom-properties_get_all_repository_predefined_keys"
+  )
+  @ApiResponse(responseCode = "200", description = "get success")
+  @ApiResponse(responseCode = "401", description = "not authenticated / invalid credentials")
+  @ApiResponse(responseCode = "403", description = "not authorized, the current user does not have the the general repository read privilege, or plugin deactivated")
+  @ApiResponse(responseCode = "404", description = "not found")
+  @ApiResponse(
+    responseCode = "500",
+    description = "internal server error",
+    content = @Content(
+      mediaType = VndMediaType.ERROR_TYPE,
+      schema = @Schema(implementation = ErrorDto.class)
+    )
+  )
+  @Produces(MediaType.APPLICATION_JSON)
+  public Collection<String> readPredefinedKeys(@PathParam("namespace") String namespace,
+                                               @PathParam("name") String name,
+                                               @QueryParam("filter") @DefaultValue("") String filter) {
+    checkIsFeatureEnabled();
+    Repository repository = tryToGetRepository(namespace, name);
+    RepositoryPermissions.read(repository).check();
+
+    return service.getFilteredPredefinedKeys(repository, filter).stream().sorted().toList();
   }
 
   @PUT

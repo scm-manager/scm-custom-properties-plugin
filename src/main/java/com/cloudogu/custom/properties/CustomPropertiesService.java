@@ -16,6 +16,7 @@
 
 package com.cloudogu.custom.properties;
 
+import com.cloudogu.custom.properties.config.ConfigService;
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import sonia.scm.ContextEntry;
@@ -35,17 +36,32 @@ import static sonia.scm.NotFoundException.notFound;
 @Slf4j
 public class CustomPropertiesService {
   private final ConfigurationEntryStoreFactory storeFactory;
+  private final ConfigService configService;
   private final ScmEventBus eventBus;
 
   @Inject
-  CustomPropertiesService(ConfigurationEntryStoreFactory storeFactory, ScmEventBus eventBus) {
+  CustomPropertiesService(ConfigurationEntryStoreFactory storeFactory, ConfigService configService, ScmEventBus eventBus) {
     this.storeFactory = storeFactory;
+    this.configService = configService;
     this.eventBus = eventBus;
   }
 
   Collection<CustomProperty> get(Repository repository) {
     DataStore<CustomProperty> store = createStore(repository);
     return store.getAll().values().stream().sorted().toList();
+  }
+
+  Collection<String> getFilteredPredefinedKeys(Repository repository, String filter) {
+    Collection<String> predefinedKeys = configService.getAllPredefinedKeys(repository);
+
+    if (filter == null || filter.isEmpty()) {
+      return predefinedKeys;
+    }
+
+    String lowerCasedFilter = filter.toLowerCase();
+    return predefinedKeys.stream()
+      .filter(key -> key.toLowerCase().contains(lowerCasedFilter))
+      .toList();
   }
 
   void create(Repository repository, CustomProperty entity) {

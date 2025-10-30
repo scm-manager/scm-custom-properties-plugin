@@ -16,16 +16,13 @@
 
 import React, { FC, useState } from "react";
 import { HalRepresentation, Repository } from "@scm-manager/ui-types";
-import { SubSubtitle, Subtitle, LinkButton, IconButton, Icon, Dialog, Button } from "@scm-manager/ui-core";
+import { Subtitle, LinkButton, IconButton, Icon, Dialog, Button } from "@scm-manager/ui-core";
 import { useTranslation } from "react-i18next";
 import { SmallLoadingSpinner } from "@scm-manager/ui-components";
-import { CustomProperty } from "./types";
-import styled from "styled-components";
-import { useDeleteCustomProperty } from "./hooks";
-
-const CenteredFooter = styled.tfoot`
-  text-align: center;
-`;
+import { CustomProperty } from "../types";
+import { useDeleteCustomProperty } from "../hooks";
+import CenteredTableFooter from "../component/CenteredTableFooter";
+import MinWidthTableCell from "../component/MinWidthTableCell";
 
 type CustomPropertyActionProps = {
   repository: Repository;
@@ -65,10 +62,10 @@ const CustomPropertyAction: FC<CustomPropertyActionProps> = ({ repository, custo
               {isLoading ? <SmallLoadingSpinner /> : <Icon>trash</Icon>}
             </IconButton>
           }
-          title={t("scm-custom-properties-plugin.modal.delete.title")}
+          title={t("scm-custom-properties-plugin.modal.deleteCustomProperty.title")}
           footer={[
             <Button key={`delete-${customProperty.key}`} onClick={confirmDelete}>
-              {t("scm-custom-properties-plugin.modal.delete.submit")}
+              {t("scm-custom-properties-plugin.modal.deleteCustomProperty.submit")}
             </Button>,
             <Button
               key={`cancel-delete-${customProperty.key}`}
@@ -76,13 +73,13 @@ const CustomPropertyAction: FC<CustomPropertyActionProps> = ({ repository, custo
               autoFocus
               onClick={() => setIsDeleteModalOpen(false)}
             >
-              {t("scm-custom-properties-plugin.modal.delete.cancel")}
+              {t("scm-custom-properties-plugin.modal.deleteCustomProperty.cancel")}
             </Button>,
           ]}
           open={isDeleteModalOpen}
           onOpenChange={setIsDeleteModalOpen}
         >
-          {t("scm-custom-properties-plugin.modal.delete.message", { key: customProperty.key })}
+          {t("scm-custom-properties-plugin.modal.deleteCustomProperty.message", { key: customProperty.key })}
         </Dialog>
       ) : null}
     </>
@@ -112,14 +109,14 @@ const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({ repository, cus
           <tr key={property.key}>
             <td>{property.key}</td>
             <td>{property.value}</td>
-            <td>
+            <MinWidthTableCell>
               <CustomPropertyAction repository={repository} customProperty={property} modifyUrl={modifyUrl} />
-            </td>
+            </MinWidthTableCell>
           </tr>
         ))}
       </tbody>
       {isCreateAllowed ? (
-        <CenteredFooter>
+        <CenteredTableFooter>
           <tr>
             <td colSpan={3}>
               <LinkButton to={modifyUrl} variant="primary">
@@ -127,7 +124,7 @@ const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({ repository, cus
               </LinkButton>
             </td>
           </tr>
-        </CenteredFooter>
+        </CenteredTableFooter>
       ) : null}
     </table>
   );
@@ -145,7 +142,6 @@ const CustomPropertiesOverview: FC<Props> = ({ repository }) => {
   return (
     <>
       <Subtitle>{t("scm-custom-properties-plugin.repository.subtitle")}</Subtitle>
-      <SubSubtitle className="mb-2">{t("scm-custom-properties-plugin.repository.api")}</SubSubtitle>
       <CustomPropertiesTable repository={repository} customProperties={customProperties} modifyUrl={modifyUrl} />
     </>
   );

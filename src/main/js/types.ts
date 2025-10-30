@@ -20,3 +20,16 @@ export type CustomProperty = {
   key: string;
   value: string;
 } & HalRepresentation;
+
+export type BaseConfig = {
+  predefinedKeys: string[];
+} & HalRepresentation;
+
+export type GlobalConfig = {
+  enabled: boolean;
+  enableNamespaceConfig: boolean;
+} & BaseConfig;
+
+export type NamespaceConfig = {
+  globallyPredefinedKeys: string[];
+} & BaseConfig;

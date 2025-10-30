@@ -16,6 +16,7 @@
 
 package com.cloudogu.custom.properties;
 
+import com.cloudogu.custom.properties.config.ConfigService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -34,11 +35,13 @@ import sonia.scm.store.InMemoryByteConfigurationEntryStoreFactory;
 
 import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CustomPropertiesServiceTest {
@@ -50,6 +53,8 @@ class CustomPropertiesServiceTest {
 
   private final Repository repository = RepositoryTestData.createHeartOfGold();
   private DataStore<CustomProperty> store;
+  @Mock
+  private ConfigService configService;
   private CustomPropertiesService customPropertiesService;
 
   @BeforeEach
@@ -61,7 +66,59 @@ class CustomPropertiesServiceTest {
   void setup() {
     InMemoryByteConfigurationEntryStoreFactory storeFactory = new InMemoryByteConfigurationEntryStoreFactory();
     store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
-    customPropertiesService = new CustomPropertiesService(storeFactory,eventBus);
+    customPropertiesService = new CustomPropertiesService(storeFactory, configService, eventBus);
+  }
+
+  @Nested
+  class GetFilteredPredefinedKeysTest {
+
+    @Test
+    void shouldReturnNoKeysBecauseNoKeysWerePredefined() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Set.of());
+
+      Collection<String> result = customPropertiesService.getFilteredPredefinedKeys(repository, "");
+      assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldReturnNoKeysBecauseFilterDoesNotMatchAnyKeys() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Set.of("lang", "java.jdbc"));
+
+      Collection<String> result = customPropertiesService.getFilteredPredefinedKeys(repository, "Some complete nonsense");
+      assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldReturnAllPredefinedKeysBecauseFilterIsEmpty() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Set.of("lang", "java.jdbc"));
+
+      Collection<String> result = customPropertiesService.getFilteredPredefinedKeys(repository, "");
+      assertThat(result).containsOnly("lang", "java.jdbc");
+    }
+
+    @Test
+    void shouldReturnAllPredefinedKeysBecauseFilterIsNull() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Set.of("lang", "java.jdbc"));
+
+      Collection<String> result = customPropertiesService.getFilteredPredefinedKeys(repository, null);
+      assertThat(result).containsOnly("lang", "java.jdbc");
+    }
+
+    @Test
+    void shouldReturnAllPredefinedKeysThatMatchTheFilter() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Set.of("lang", "java.jdbc"));
+
+      Collection<String> result = customPropertiesService.getFilteredPredefinedKeys(repository, "lan");
+      assertThat(result).containsOnly("lang");
+    }
+
+    @Test
+    void shouldApplyFilterCaseInsensitive() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Set.of("lang", "LANG"));
+
+      Collection<String> result = customPropertiesService.getFilteredPredefinedKeys(repository, "lAn");
+      assertThat(result).containsOnly("lang", "LANG");
+    }
   }
 
   @Nested

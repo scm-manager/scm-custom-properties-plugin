@@ -1,0 +1,2 @@
+- type: added
+  description: Users can now predefine keys within the global and namespace config, which get suggested when adding / editing a custom property of a repository

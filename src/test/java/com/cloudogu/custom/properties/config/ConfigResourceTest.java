@@ -16,7 +16,6 @@
 
 package com.cloudogu.custom.properties.config;
 
-
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.ws.rs.core.MediaType;
 import org.github.sdorra.jse.ShiroExtension;
@@ -26,6 +25,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import sonia.scm.api.v2.resources.ScmPathInfoStore;
@@ -35,6 +36,7 @@ import sonia.scm.web.RestDispatcher;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -44,27 +46,137 @@ import static org.mockito.Mockito.when;
 @SubjectAware("Trainer Red")
 class ConfigResourceTest {
 
+  private final String domain = "https://scm-test.de/scm/api/";
+  private final String globalConfigPath = "/v2/custom-properties/global-configuration";
+  private final String namespaceConfigPath = "/v2/custom-properties/namespace-configuration/hitchhiker";
+  private final String namespace = "hitchhiker";
+
+  @Mock
+  private ConfigService configService;
+  private RestDispatcher dispatcher;
+
+  @BeforeEach
+  void setUp() {
+    ScmPathInfoStore pathInfoStore = new ScmPathInfoStore();
+    pathInfoStore.set(() -> URI.create(domain));
+
+    GlobalConfigMapper globalConfigMapper = new GlobalConfigMapperImpl();
+    globalConfigMapper.setScmPathInfoStore(pathInfoStore);
+    NamespaceConfigMapper namespaceConfigMapper = new NamespaceConfigMapperImpl();
+    namespaceConfigMapper.setScmPathInfoStore(pathInfoStore);
+
+    ConfigResource resource = new ConfigResource(
+      configService,
+      globalConfigMapper,
+      namespaceConfigMapper
+    );
+    dispatcher = new RestDispatcher();
+    dispatcher.addSingletonResource(resource);
+  }
+
+  @Nested
+  class NamespaceConfigTest {
+
+    @Test
+    void shouldNotGetNamespaceConfigButReturnForbiddenBecausePermissionIsMissing() throws URISyntaxException {
+      MockHttpRequest request = MockHttpRequest.get(namespaceConfigPath);
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(403);
+    }
+
+    @Test
+    @SubjectAware(permissions = {"namespace:customProperties:hitchhiker"})
+    void shouldReturnNamespaceConfiguration() throws URISyntaxException {
+      String expectedLink = domain + namespaceConfigPath.substring(1);
+
+      GlobalConfig globalConfig = new GlobalConfig();
+      globalConfig.setPredefinedKeys(Set.of("java.jdbc"));
+      when(configService.getGlobalConfig()).thenReturn(globalConfig);
+
+      NamespaceConfig expected = new NamespaceConfig();
+      expected.setPredefinedKeys(Set.of("lang"));
+      when(configService.getNamespaceConfig(namespace)).thenReturn(expected);
+
+      MockHttpRequest request = MockHttpRequest.get(namespaceConfigPath);
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(200);
+      JsonNode responseBody = response.getContentAsJson();
+      assertThat(responseBody.get("predefinedKeys").get(0).asText()).isEqualTo("lang");
+      assertThat(responseBody.get("globallyPredefinedKeys").get(0).asText()).isEqualTo("java.jdbc");
+      assertThat(responseBody.get("_links").get("update").get("href").asText()).isEqualTo(expectedLink);
+      assertThat(responseBody.get("_links").get("self").get("href").asText()).isEqualTo(expectedLink);
+    }
+
+    @Test
+    void shouldNotSetNamespaceConfigButReturnForbiddenBecausePermissionIsMissing() throws URISyntaxException {
+      JsonMockHttpRequest request = JsonMockHttpRequest
+        .put(namespaceConfigPath)
+        .contentType(MediaType.APPLICATION_JSON)
+        .json("{ 'predefinedKeys': ['lang'] }");
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(403);
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+      strings = {
+        "{ }",
+        "{ 'predefinedKeys': null }",
+        "{ 'predefinedKeys': [ null ] }",
+        "{ 'predefinedKeys': [ '' ] }",
+        "{ 'predefinedKeys': [ 'Ungültiger/Schlüssel' ] }"
+      }
+    )
+    void shouldReturnBadRequestBecausePredefinedKeysAreMalformed(String predefinedKeys) throws URISyntaxException {
+      JsonMockHttpRequest request = JsonMockHttpRequest
+        .put(namespaceConfigPath)
+        .contentType(MediaType.APPLICATION_JSON)
+        .json(predefinedKeys);
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    @SubjectAware(permissions = {"namespace:customProperties:hitchhiker"})
+    void shouldReturnBadRequestBecausePredefinedKeyContainsTooLongKey() throws URISyntaxException {
+      JsonMockHttpRequest request = JsonMockHttpRequest
+        .put(namespaceConfigPath)
+        .contentType(MediaType.APPLICATION_JSON)
+        .json(String.format("{ 'predefinedKeys': [ '%s' ] }", "a".repeat(256)));
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    @SubjectAware(permissions = {"namespace:customProperties:hitchhiker"})
+    void shouldSetNamespaceConfiguration() throws URISyntaxException {
+      NamespaceConfig expected = new NamespaceConfig();
+      expected.setPredefinedKeys(Set.of("lang", "java.jdbc"));
+
+      JsonMockHttpRequest request = JsonMockHttpRequest
+        .put(namespaceConfigPath)
+        .contentType(MediaType.APPLICATION_JSON)
+        .json("{ 'predefinedKeys': ['lang', 'java.jdbc'] }");
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(204);
+      verify(configService).setNamespaceConfig(namespace, expected);
+    }
+  }
+
   @Nested
   class GlobalConfigTest {
-
-    @Mock
-    private ConfigService configService;
-    private RestDispatcher dispatcher;
-
-    private final String domain = "https://scm-test.de/scm/api/";
-    private final String globalConfigPath = "/v2/custom-properties/global-configuration";
-
-    @BeforeEach
-    void setUp() {
-      ScmPathInfoStore pathInfoStore = new ScmPathInfoStore();
-      pathInfoStore.set(() -> URI.create(domain));
-      GlobalConfigMapper globalConfigMapper = new GlobalConfigMapperImpl();
-      globalConfigMapper.setScmPathInfoStore(pathInfoStore);
-
-      ConfigResource resource = new ConfigResource(configService, globalConfigMapper);
-      dispatcher = new RestDispatcher();
-      dispatcher.addSingletonResource(resource);
-    }
 
     @Test
     void shouldNotGetGlobalConfigButReturnForbiddenBecausePermissionIsMissing() throws URISyntaxException {
@@ -79,8 +191,12 @@ class ConfigResourceTest {
     @SubjectAware(permissions = {"configuration:read,write:customProperties"})
     void shouldReturnGlobalConfiguration() throws URISyntaxException {
       String expectedLink = domain + globalConfigPath.substring(1);
+      GlobalConfig expected = new GlobalConfig();
+      expected.setEnabled(true);
+      expected.setEnableNamespaceConfig(false);
+      expected.setPredefinedKeys(Set.of("lang"));
 
-      when(configService.getGlobalConfig()).thenReturn(new GlobalConfig());
+      when(configService.getGlobalConfig()).thenReturn(expected);
       MockHttpRequest request = MockHttpRequest.get(globalConfigPath);
       JsonMockHttpResponse response = new JsonMockHttpResponse();
       dispatcher.invoke(request, response);
@@ -88,6 +204,7 @@ class ConfigResourceTest {
       assertThat(response.getStatus()).isEqualTo(200);
       JsonNode responseBody = response.getContentAsJson();
       assertThat(responseBody.get("enabled").asBoolean()).isTrue();
+      assertThat(responseBody.get("enableNamespaceConfig").asBoolean()).isFalse();
       assertThat(responseBody.get("_links").get("update").get("href").asText()).isEqualTo(expectedLink);
       assertThat(responseBody.get("_links").get("self").get("href").asText()).isEqualTo(expectedLink);
     }
@@ -97,11 +214,49 @@ class ConfigResourceTest {
       JsonMockHttpRequest request = JsonMockHttpRequest
         .put(globalConfigPath)
         .contentType(MediaType.APPLICATION_JSON)
-        .json("{ 'enabled': false }");
+        .json("{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': [] }");
       JsonMockHttpResponse response = new JsonMockHttpResponse();
       dispatcher.invoke(request, response);
 
       assertThat(response.getStatus()).isEqualTo(403);
+    }
+
+
+    @ParameterizedTest
+    @ValueSource(
+      strings = {
+        "",
+        ", 'predefinedKeys': null",
+        ", 'predefinedKeys': [ null ]",
+        ", 'predefinedKeys': [ '' ]",
+        ", 'predefinedKeys': [ 'Ungültiger/Schlüssel' ]"
+      }
+    )
+    void shouldReturnBadRequestBecausePredefinedKeysAreMalformed(String predefinedKeys) throws URISyntaxException {
+      JsonMockHttpRequest request = JsonMockHttpRequest
+        .put(globalConfigPath)
+        .contentType(MediaType.APPLICATION_JSON)
+        .json(String.format("{ 'enabled': false, 'enableNamespaceConfig': false%s }", predefinedKeys));
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    @SubjectAware(permissions = {"configuration:read,write:customProperties"})
+    void shouldReturnBadRequestBecausePredefinedKeyContainsTooLongKey() throws URISyntaxException {
+      JsonMockHttpRequest request = JsonMockHttpRequest
+        .put(globalConfigPath)
+        .contentType(MediaType.APPLICATION_JSON)
+        .json(String.format(
+          "{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': ['%s'] }",
+          "a".repeat(256)
+        ));
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(400);
     }
 
     @Test
@@ -109,11 +264,13 @@ class ConfigResourceTest {
     void shouldSetGlobalConfiguration() throws URISyntaxException {
       GlobalConfig expected = new GlobalConfig();
       expected.setEnabled(false);
+      expected.setEnableNamespaceConfig(false);
+      expected.setPredefinedKeys(Set.of("lang", "java.jdbc"));
 
       JsonMockHttpRequest request = JsonMockHttpRequest
         .put(globalConfigPath)
         .contentType(MediaType.APPLICATION_JSON)
-        .json("{ 'enabled': false }");
+        .json("{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': ['lang', 'java.jdbc'] }");
       JsonMockHttpResponse response = new JsonMockHttpResponse();
       dispatcher.invoke(request, response);
 

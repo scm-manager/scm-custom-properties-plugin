@@ -19,12 +19,12 @@ package com.cloudogu.custom.properties;
 import de.otto.edison.hal.HalRepresentation;
 import de.otto.edison.hal.Links;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.validator.constraints.Length;
 
 @Getter
 @Setter
@@ -32,7 +32,7 @@ import org.hibernate.validator.constraints.Length;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class CustomPropertyDto extends HalRepresentation {
-  @Length(max = 255)
+  @Size(max = 255, min = 1)
   @Pattern(regexp = "^[a-zA-Z_ 0-9.\\-:@/]*$")
   private String key;
   private String value;

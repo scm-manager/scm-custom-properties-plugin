@@ -42,6 +42,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Set;
 
 import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
 import static jakarta.ws.rs.core.Response.Status.CONFLICT;
@@ -94,10 +95,6 @@ class CustomPropertiesResourceTest {
       {"key": "this-is-extreme#", "value": "somethingelse"}
     """;
 
-  private static final String TEST_KEY_WITH_EXTRA_CHARACTERS = """
-      {"key": "", "value": "AdditionalCharacters"}
-    """;
-
   private Repository repository;
 
   private RestDispatcher dispatcher;
@@ -117,7 +114,7 @@ class CustomPropertiesResourceTest {
     this.configService = new ConfigService(new InMemoryByteConfigurationStoreFactory());
     CustomPropertiesResource resource = new CustomPropertiesResource(
       repositoryManager,
-      new CustomPropertiesService(storeFactory,eventBus),
+      new CustomPropertiesService(storeFactory, configService, eventBus),
       configService,
       customPropertyMapper
     );
@@ -126,6 +123,103 @@ class CustomPropertiesResourceTest {
     dispatcher.addSingletonResource(resource);
 
     lenient().when(repositoryManager.get(eq(repository.getNamespaceAndName()))).thenReturn(repository);
+  }
+
+  @Nested
+  class ReadPredefinedKeys {
+
+    @Test
+    @SubjectAware(value = "cannotRead")
+    void shouldReturnUnauthorizedForLackingReadPermissions() throws URISyntaxException {
+
+      String uri = format("/v2/custom-properties/%s/%s/predefined-keys", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(FORBIDDEN.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "cannotRead")
+    void shouldReturnNotFoundForNonexistingRepository() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s/predefined-keys", "bogus", "repo");
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NOT_FOUND.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
+    void shouldReturnCollectionWithoutFilter() throws URISyntaxException, UnsupportedEncodingException {
+      GlobalConfig globalConfig = new GlobalConfig();
+      globalConfig.setPredefinedKeys(Set.of("lang"));
+      configService.setGlobalConfig(globalConfig);
+
+      String uri = format("/v2/custom-properties/%s/%s/predefined-keys", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      assertThat(response.getContentAsString()).isEqualTo("[\"lang\"]");
+    }
+
+    @Test
+    @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
+    void shouldReturnCollectionWithFilter() throws URISyntaxException, UnsupportedEncodingException {
+      GlobalConfig globalConfig = new GlobalConfig();
+      globalConfig.setPredefinedKeys(Set.of("lang", "java.jdbc"));
+      configService.setGlobalConfig(globalConfig);
+
+      String uri = format("/v2/custom-properties/%s/%s/predefined-keys?filter=l", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      assertThat(response.getContentAsString()).isEqualTo("[\"lang\"]");
+    }
+
+    @Test
+    @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
+    void shouldReturnCollectionWithEmptyFilter() throws URISyntaxException, UnsupportedEncodingException {
+      GlobalConfig globalConfig = new GlobalConfig();
+      globalConfig.setPredefinedKeys(Set.of("lang"));
+      configService.setGlobalConfig(globalConfig);
+
+      String uri = format("/v2/custom-properties/%s/%s/predefined-keys?filter=", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      assertThat(response.getContentAsString()).isEqualTo("[\"lang\"]");
+    }
+
+    @Test
+    @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
+    void shouldReturnSortedKeys() throws URISyntaxException, UnsupportedEncodingException {
+      GlobalConfig globalConfig = new GlobalConfig();
+      globalConfig.setPredefinedKeys(Set.of("c", "a", "b"));
+      configService.setGlobalConfig(globalConfig);
+
+      String uri = format("/v2/custom-properties/%s/%s/predefined-keys?filter=", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      assertThat(response.getContentAsString()).isEqualTo("[\"a\",\"b\",\"c\"]");
+    }
   }
 
   @Nested
@@ -190,7 +284,10 @@ class CustomPropertiesResourceTest {
     @Test
     @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
     void shouldReturnForbiddenIfPluginIsDisabled() throws URISyntaxException {
-      configService.setGlobalConfig(new GlobalConfig(false));
+      GlobalConfig disabledPlugin = new GlobalConfig();
+      disabledPlugin.setEnabled(false);
+
+      configService.setGlobalConfig(disabledPlugin);
       String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.get(uri);
       MockHttpResponse response = new MockHttpResponse();
@@ -383,7 +480,10 @@ class CustomPropertiesResourceTest {
     @Test
     @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
     void shouldReturnForbiddenIfPluginIsDisabled() throws URISyntaxException {
-      configService.setGlobalConfig(new GlobalConfig(false));
+      GlobalConfig disabledPlugin = new GlobalConfig();
+      disabledPlugin.setEnabled(false);
+      configService.setGlobalConfig(disabledPlugin);
+
       String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.post(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
@@ -540,7 +640,10 @@ class CustomPropertiesResourceTest {
     @Test
     @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
     void shouldReturnForbiddenIfPluginIsDisabled() throws URISyntaxException {
-      configService.setGlobalConfig(new GlobalConfig(false));
+      GlobalConfig disabledPlugin = new  GlobalConfig();
+      disabledPlugin.setEnabled(false);
+      configService.setGlobalConfig(disabledPlugin);
+
       String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), "hello");
       MockHttpRequest request = MockHttpRequest.put(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
@@ -655,7 +758,10 @@ class CustomPropertiesResourceTest {
     @Test
     @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
     void shouldReturnForbiddenIfPluginIsDisabled() throws URISyntaxException {
-      configService.setGlobalConfig(new GlobalConfig(false));
+      GlobalConfig disabledPlugin = new GlobalConfig();
+      disabledPlugin.setEnabled(false);
+      configService.setGlobalConfig(disabledPlugin);
+
       String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), TEST_KEY);
       MockHttpRequest request = MockHttpRequest.delete(uri);
       request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);

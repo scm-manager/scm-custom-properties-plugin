@@ -29,6 +29,8 @@ import sonia.scm.api.v2.resources.LinkBuilder;
 import sonia.scm.api.v2.resources.ScmPathInfoStore;
 import sonia.scm.config.ConfigurationPermissions;
 
+import java.util.TreeSet;
+
 import static de.otto.edison.hal.Links.linkingTo;
 
 @Mapper
@@ -42,14 +44,14 @@ public abstract class GlobalConfigMapper {
     this.scmPathInfoStore = scmPathInfoStore;
   }
 
-  @Mapping(target = "links", ignore = true)
-  @Mapping(target = "embedded", ignore = true)
   @Mapping(target = "attributes", ignore = true)
   public abstract GlobalConfigDto map(GlobalConfig globalConfig);
   public abstract GlobalConfig map(GlobalConfigDto globalConfigDto);
 
   @AfterMapping
   public void appendLinks(@MappingTarget GlobalConfigDto target) {
+    target.setPredefinedKeys(new TreeSet<>(target.getPredefinedKeys()));
+
     Links.Builder linksBuilder = linkingTo();
     if (ConfigurationPermissions.read(CustomPropertiesContext.CONFIG_PERMISSION_NAME).isPermitted()) {
       linksBuilder.self(self());

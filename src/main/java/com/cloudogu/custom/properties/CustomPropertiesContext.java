@@ -22,4 +22,5 @@ public class CustomPropertiesContext {
 
   public static final String CUSTOM_PROPERTIES_V2_PATH = "v2/custom-properties";
   public static final String CONFIG_PERMISSION_NAME = "customProperties";
+  public static final String CONFIG_LINK_NAME = "customPropertiesConfig";
 }

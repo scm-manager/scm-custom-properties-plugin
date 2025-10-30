@@ -16,14 +16,14 @@
 
 import React from "react";
 import { binder, extensionPoints } from "@scm-manager/ui-extensions";
-import { ConfigurationBinder } from "@scm-manager/ui-components";
 import { Route } from "react-router";
 import { Repository } from "@scm-manager/ui-types";
-import GlobalCustomPropertiesConfiguration from "./GlobalCustomPropertiesConfiguration";
-import CustomPropertiesOverview from "./CustomPropertiesOverview";
-import CustomPropertiesNavLink from "./CustomPropertiesNavLink";
-import CustomPropertiesEditor from "./CustomPropertiesEditor";
-import CustomPropertyHitRenderer from "./CustomPropertyHitRenderer";
+import CustomPropertiesOverview from "./overview/CustomPropertiesOverview";
+import CustomPropertiesNavLink from "./overview/CustomPropertiesNavLink";
+import CustomPropertiesEditor from "./overview/CustomPropertiesEditor";
+import CustomPropertyHitRenderer from "./search/CustomPropertyHitRenderer";
+import bindGlobalConfig from "./config/GlobalConfigRouteSetup";
+import bindNamespaceConfig from "./config/NamespaceConfigRouteSetup";
 
 const CustomPropertiesPredicate = ({ repository }: { repository: Repository }) => {
   return repository._embedded?.customProperties;
@@ -37,7 +37,7 @@ binder.bind<extensionPoints.RepositoryNavigation>(
 
 const CustomPropertiesRoute = ({ url, repository }: { url: string; repository: Repository }) => {
   return (
-    //@ts-expect-error
+    //@ts-expect-error will be irrelevant with react 19 upgrade
     <Route
       path={`${url}/custom-properties`}
       exact
@@ -51,7 +51,7 @@ binder.bind("repository.route", CustomPropertiesRoute, CustomPropertiesPredicate
 
 const CustomPropertiesEditorRoute = ({ url, repository }: { url: string; repository: Repository }) => {
   return (
-    //@ts-expect-error
+    //@ts-expect-error will be irrelevant with react 19 upgrade
     <Route
       path={`${url}/custom-properties/modify`}
       exact
@@ -63,9 +63,5 @@ binder.bind("repository.route", CustomPropertiesEditorRoute, CustomPropertiesPre
 
 binder.bind("search.hit.indexedCustomProperty.renderer", CustomPropertyHitRenderer);
 
-ConfigurationBinder.bindGlobal(
-  "/custom-properties",
-  "scm-custom-properties-plugin.navLink",
-  "customPropertiesConfig",
-  GlobalCustomPropertiesConfiguration,
-);
+bindGlobalConfig();
+bindNamespaceConfig();

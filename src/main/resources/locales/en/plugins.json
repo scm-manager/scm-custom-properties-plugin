@@ -3,8 +3,47 @@
     "navLink": "Custom Properties",
     "config": {
       "title": "Custom Properties Configuration",
-      "enabled": {
-        "label": "Activate plugin"
+      "general": {
+        "enabled": {
+          "title": "Plugin Enablement",
+          "subtitle": "Should the Plugin be enabled?",
+          "radio": {
+            "true": "Plugin is enabled",
+            "false": "Plugin is disabled"
+          },
+          "edit": {
+            "ariaLabel": "Edit whether the plugin is enabled or disabled"
+          }
+        },
+        "enableNamespaceConfig": {
+          "title": "Usage of predefined Custom Properties",
+          "subtitle": "Should the custom properties from the namespace config allowed to be used?",
+          "radio": {
+            "true": "Allow additional custom properties to be defined from the namespace config",
+            "false": "Custom Properties from the namespace config will not be used"
+          },
+          "edit": {
+            "ariaLabel": "Edit whether custom properties from the namespace config will be used"
+          }
+        },
+        "predefinedKeys": {
+          "title": "Custom Properties",
+          "subtitle": "Predefine Custom Property"
+        },
+        "editedKey": {
+          "label": "Key"
+        },
+        "addedKey": {
+          "label": "Key"
+        },
+        "subtitle": "General Settings"
+      },
+      "predefinedKeys": {
+        "subtitle": "Predefined Custom Properties"
+      },
+      "template": {
+        "global": "Global Template",
+        "namespace": "Namespace Template"
       }
     },
     "repository": {
@@ -12,11 +51,17 @@
       "api": "API Path"
     },
     "modal": {
-      "delete": {
+      "deleteCustomProperty": {
         "title": "Delete Custom Property",
         "submit": "Yes",
         "cancel": "No",
         "message": "Do you really want to delete the custom property with the key '{{key}}'?"
+      },
+      "deletePredefinedKey": {
+        "title": "Delete predefined key",
+        "submit": "Yes",
+        "cancel": "No",
+        "message": "Do you really want to delete the predefined key \"{{key}}\"?"
       }
     },
     "editor": {
@@ -26,7 +71,7 @@
         "label": "Key",
         "tooLong": "The maximum length of a key is 255 characters",
         "invalidChars": "Keys are only allowed to contain the following characters: Space a-z A-Z 0-9 _ . - : @ /",
-        "alreadyExists": "The provided key '{{key}}' already exists for this repository"
+        "alreadyExists": "The provided key already exists"
       },
       "submitSuccessCreate": "The custom property was successfully created",
       "value": {
@@ -37,14 +82,16 @@
       "header": {
         "key": "Key",
         "value": "Value",
-        "action": "Action"
+        "action": "Action",
+        "setting": "Setting"
       },
       "body": {
         "edit": "Edit entry with the key {{key}}",
         "delete": "Delete entry with the key {{key}}"
       },
       "footer": {
-        "add": "Add new custom property"
+        "add": "Add new custom property",
+        "addKey": "Predefine Custom Property"
       }
     },
     "search": {
@@ -62,6 +109,22 @@
           "displayName": "Modify global configuration for custom properties",
           "description": "May modify global configuration for custom properties"
         }
+      }
+    },
+    "namespace": {
+      "customProperties": {
+        "*": {
+          "displayName": "Modify namespace configuration for custom properties",
+          "description": "May modify namespace configuration for custom properties"
+        }
+      }
+    }
+  },
+  "verbs": {
+    "repository": {
+      "customProperties": {
+        "displayName": "Modify configuration for custom properties",
+        "description": "May modify configuration for custom properties"
       }
     }
   },

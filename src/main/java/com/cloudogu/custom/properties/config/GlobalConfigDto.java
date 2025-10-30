@@ -18,17 +18,16 @@ package com.cloudogu.custom.properties.config;
 
 import de.otto.edison.hal.HalRepresentation;
 import de.otto.edison.hal.Links;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
+@EqualsAndHashCode(callSuper = true)
+@Data
 @NoArgsConstructor
-@AllArgsConstructor
-@Getter
-@Setter
-public class GlobalConfigDto extends HalRepresentation {
+public class GlobalConfigDto extends BaseConfigDto {
   private boolean enabled;
+  private boolean enableNamespaceConfig;
 
   @Override
   protected HalRepresentation add(Links links) {

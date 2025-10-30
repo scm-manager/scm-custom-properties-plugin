@@ -1,34 +1,79 @@
 {
   "scm-custom-properties-plugin": {
-    "navLink": "Benutzerdefinierte Eigenschaften",
+    "navLink": "Custom Properties",
     "config": {
-      "title": "Konfiguration für benutzerdefinierte Eigenschaften",
-      "enabled": {
-        "label": "Plugin aktivieren"
+      "title": "Konfiguration für Custom Properties",
+      "general": {
+        "enabled": {
+          "title": "Plugin Aktivierung",
+          "subtitle": "Soll das Plugin aktiviert werden?",
+          "radio": {
+            "true": "Plugin ist aktiviert",
+            "false": "Plugin ist deaktiviert"
+          },
+          "edit": {
+            "ariaLabel": "Einstellen, ob das Plugin aktiviert sein soll"
+          }
+        },
+        "enableNamespaceConfig": {
+          "title": "Nutzung der vordefinierten Custom Properties",
+          "subtitle": "Dürfen die vordefinierten Custom Properties durch die Namespace-Konfiguration ergänzt werden?",
+          "radio": {
+            "true": "Zusätzliche Custom Properties dürfen durch die Namespace-Konfiguration ergänzt werden",
+            "false": "Vordefinierte Custom Properties der Namespace-Konfiguration werden nicht berücksichtigt"
+          },
+          "edit": {
+            "ariaLabel": "Einstellen, ob vordefinierte Custom Properties der Namespace-Konfiguration verwendet werden"
+          }
+        },
+        "predefinedKeys": {
+          "title": "Custom Properties",
+          "subtitle": "Vordefinierte Custom Properties"
+        },
+        "editedKey": {
+          "label": "Schlüssel"
+        },
+        "addedKey": {
+          "label": "Schlüssel"
+        },
+        "subtitle": "Allgemeine Einstellungen"
+      },
+      "predefinedKeys": {
+        "subtitle": "Vordefinierte Custom Properties"
+      },
+      "template": {
+        "global": "Globale Vorlage",
+        "namespace": "Namespace Vorlage"
       }
     },
     "repository": {
-      "subtitle": "Benutzerdefinierte Repository Eigenschaften",
+      "subtitle": "Custom Repository Properties",
       "api": "API-Pfad"
     },
     "modal": {
-      "delete": {
-        "title": "Benutzerdefinierte Eigenschaft löschen",
+      "deletePredefinedKey": {
+        "title": "Vordefinierten Schlüssel löschen",
         "submit": "Ja",
         "cancel": "Nein",
-        "message": "Sind Sie sich wirklich sicher, dass Sie die benutzerdefinierte Eigenschaft mit dem Schlüssel \"{{key}}\" löschen wollen?"
+        "message": "Soll der vordefinierte Schlüssel \"{{key}}\" wirklich gelöscht werden?"
+      },
+      "deleteCustomProperty": {
+        "title": "Custom Property löschen",
+        "submit": "Ja",
+        "cancel": "Nein",
+        "message": "Soll das Custom Property mit dem Schlüssel \"{{key}}\" wirklich gelöscht werden?"
       }
     },
     "editor": {
-      "subtitle_create": "Benutzerdefinierte Eigenschaft anlegen",
-      "subtitle_edit": "Benutzerdefinierte Eigenschaft mit dem Schlüssel \"{{key}}\" bearbeiten",
+      "subtitle_create": "Custom Property anlegen",
+      "subtitle_edit": "Custom Property mit dem Schlüssel \"{{key}}\" bearbeiten",
       "key": {
         "label": "Schlüssel",
         "tooLong": "Der Schlüssel überschreitet die maximale Länge von 255 Zeichen",
         "invalidChars": "Für den Schlüssel sind nur folgende Zeichen erlaubt: Leerzeichen a-z A-Z 0-9 _ . - : @ /",
-        "alreadyExists": "Der angegebene Schlüssel \"{{key}}\" existiert bereits für dieses Repository"
+        "alreadyExists": "Der angegebene Schlüssel existiert bereits"
       },
-      "submitSuccessCreate": "Die benutzerdefinierte Eigenschaft wurde erfolgreich erstellt",
+      "submitSuccessCreate": "Die Custom Property wurde erfolgreich erstellt",
       "value": {
         "label": "Wert"
       }
@@ -37,14 +82,16 @@
       "header": {
         "key": "Schlüssel",
         "value": "Wert",
-        "action": "Aktion"
+        "action": "Aktion",
+        "setting": "Einstellung"
       },
       "body": {
         "edit": "Eintrag mit dem Schlüssel {{key}} bearbeiten",
         "delete": "Eintrag mit dem Schlüssel {{key}} löschen"
       },
       "footer": {
-        "add": "Neuen Eintrag erstellen"
+        "add": "Neuen Eintrag erstellen",
+        "addKey": "Custom Property vordefinieren"
       }
     },
     "search": {
@@ -59,30 +106,46 @@
     "configuration": {
       "read,write": {
         "customProperties": {
-          "displayName": "Globale Konfiguration für benutzerdefinierte Eigenschaften ändern",
-          "description": "Darf die globale Konfiguration für benutzerdefinierte Eigenschaften verändern"
+          "displayName": "Globale Konfiguration für Custom Properties ändern",
+          "description": "Darf die globale Konfiguration für Custom Properties verändern"
         }
+      }
+    },
+    "namespace": {
+      "customProperties": {
+        "*": {
+          "displayName": "Namespace-Konfiguration für Custom Properties ändern",
+          "description": "Darf die Namespace-Konfiguration für Custom Properties verändern"
+        }
+      }
+    }
+  },
+  "verbs": {
+    "repository": {
+      "customProperties": {
+        "displayName": "Konfiguration für Custom Properties ändern",
+        "description": "Darf die Konfiguration für Custom Properties verändern"
       }
     }
   },
   "search": {
     "types": {
       "indexedCustomProperty": {
-        "title": "Benutzerdefinierte Eigenschaften",
-        "subtitle": "Benutzerdefinierte Eigenschaften",
-        "navItem": "Benutzerdefinierte Eigenschaften",
+        "title": "Custom Properties",
+        "subtitle": "Custom Properties",
+        "navItem": "Custom Properties",
         "fields": {
           "key": {
             "exampleValue": "lang",
-            "hints": "Der Schlüssel einer benutzerdefinierten Eigenschaft"
+            "hints": "Der Schlüssel einer Custom Property"
           },
           "value": {
             "exampleValue": "java",
-            "hints": "Der Wert einer benutzerdefinierten Eigenschaft"
+            "hints": "Der Wert einer Custom Property"
           },
           "property": {
             "exampleValue": "\"lang=java\"",
-            "hints": "Das Schlüssel-Wert-Paar einer benutzerdefinierten Eigenschaft. Diese müssen in Anführungszeichen und mit einem '=' verknüpft werden."
+            "hints": "Das Schlüssel-Wert-Paar einer Custom Property. Diese müssen in Anführungszeichen und mit einem '=' verknüpft werden."
           }
         }
       }

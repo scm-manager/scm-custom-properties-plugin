@@ -74,6 +74,13 @@ public class RepositoryEnricher implements HalEnricher {
       createCollectionLinks(new LinkBuilder(pathInfoStore.get().get(), CustomPropertiesResource.class), repository)
     );
     appender.appendEmbedded("customProperties", collection);
+
+    appender.appendLink("predefinedCustomPropertyKeys", createPredefinedKeysLink(repository));
+  }
+
+  private String createPredefinedKeysLink(Repository repository) {
+    LinkBuilder linkBuilder = new LinkBuilder(pathInfoStore.get().get(), CustomPropertiesResource.class);
+    return linkBuilder.method("readPredefinedKeys").parameters(repository.getNamespace(), repository.getName()).href();
   }
 
   private Links createCollectionLinks(LinkBuilder linkBuilder, Repository repository) {

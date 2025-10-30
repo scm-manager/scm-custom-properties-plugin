@@ -19,15 +19,26 @@ package com.cloudogu.custom.properties.config;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlRootElement;
-import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+
+@EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @XmlRootElement(name = "globalCustomPropertiesConfig")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class GlobalConfig {
+public class GlobalConfig extends BaseConfig {
   private boolean enabled = true;
+  private boolean enableNamespaceConfig = true;
+
+  public GlobalConfig(boolean enabled,
+                      boolean enableNamespaceConfig,
+                      Set<String> predefinedKeys) {
+    super(predefinedKeys);
+    this.enabled = enabled;
+    this.enableNamespaceConfig = enableNamespaceConfig;
+  }
 }

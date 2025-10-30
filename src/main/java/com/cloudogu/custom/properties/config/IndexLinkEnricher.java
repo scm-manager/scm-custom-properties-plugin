@@ -45,7 +45,7 @@ public class IndexLinkEnricher implements HalEnricher {
     if (ConfigurationPermissions.read(CustomPropertiesContext.CONFIG_PERMISSION_NAME).isPermitted()) {
       LinkBuilder linkBuilder = new LinkBuilder(pathInfoStore.get().get(), ConfigResource.class);
       appender.appendLink(
-        "customPropertiesConfig",
+        CustomPropertiesContext.CONFIG_LINK_NAME,
         linkBuilder.method("getGlobalConfig").parameters().href()
       );
     }

@@ -17,21 +17,29 @@
 package com.cloudogu.custom.properties.config;
 
 import jakarta.inject.Inject;
+import sonia.scm.repository.Repository;
 import sonia.scm.store.ConfigurationStore;
 import sonia.scm.store.ConfigurationStoreFactory;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 public class ConfigService {
 
-  private static final String GLOBAL_CONFIG_STORE_NAME = "custom-properties-config";
+  private static final String CONFIG_STORE_NAME = "custom-properties-config";
 
   private final ConfigurationStore<GlobalConfig> globalConfigStore;
+  private final ConfigurationStoreFactory configStoreFactory;
 
   @Inject
   public ConfigService(ConfigurationStoreFactory configurationStoreFactory) {
     this.globalConfigStore = configurationStoreFactory
       .withType(GlobalConfig.class)
-      .withName(GLOBAL_CONFIG_STORE_NAME)
+      .withName(CONFIG_STORE_NAME)
       .build();
+
+    this.configStoreFactory = configurationStoreFactory;
   }
 
   public GlobalConfig getGlobalConfig() {
@@ -40,5 +48,32 @@ public class ConfigService {
 
   public void setGlobalConfig(GlobalConfig globalConfig) {
     globalConfigStore.set(globalConfig);
+  }
+
+  public NamespaceConfig getNamespaceConfig(String namespace) {
+    return getNamespaceConfigStore(namespace).getOptional().orElseGet(NamespaceConfig::new);
+  }
+
+  public void setNamespaceConfig(String namespace, NamespaceConfig namespaceConfig) {
+    getNamespaceConfigStore(namespace).set(namespaceConfig);
+  }
+
+  private ConfigurationStore<NamespaceConfig> getNamespaceConfigStore(String namespace) {
+    return configStoreFactory
+      .withType(NamespaceConfig.class)
+      .withName(CONFIG_STORE_NAME)
+      .forNamespace(namespace)
+      .build();
+  }
+
+  public Collection<String> getAllPredefinedKeys(Repository repository) {
+    GlobalConfig globalConfig = getGlobalConfig();
+    Set<String> result = new HashSet<>(globalConfig.getPredefinedKeys());
+
+    if (globalConfig.isEnableNamespaceConfig()) {
+      result.addAll(getNamespaceConfig(repository.getNamespace()).getPredefinedKeys());
+    }
+
+    return result;
   }
 }

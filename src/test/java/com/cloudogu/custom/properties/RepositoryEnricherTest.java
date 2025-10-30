@@ -37,6 +37,7 @@ import sonia.scm.repository.RepositoryTestData;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 import static de.otto.edison.hal.Link.link;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -85,14 +86,18 @@ class RepositoryEnricherTest {
   @Test
   @SubjectAware(permissions = {"repository:read:1337"})
   void shouldNotEnrichBecauseFeatureIsGloballyDisabled() {
-    when(configService.getGlobalConfig()).thenReturn(new GlobalConfig(false));
+    GlobalConfig disabledConfig = new GlobalConfig(false, true, Set.of());
+
+    when(configService.getGlobalConfig()).thenReturn(disabledConfig);
     enricher.enrich(context, appender);
     verifyNoInteractions(appender);
   }
 
   @Test
   void shouldNotEnrichBecauseReadPermissionIsMissing() {
-    when(configService.getGlobalConfig()).thenReturn(new GlobalConfig(true));
+    GlobalConfig enabledConfig = new GlobalConfig(true, true, Set.of());
+
+    when(configService.getGlobalConfig()).thenReturn(enabledConfig);
     when(context.oneRequireByType(Repository.class)).thenReturn(repository);
     enricher.enrich(context, appender);
     verifyNoInteractions(appender);
@@ -100,8 +105,25 @@ class RepositoryEnricherTest {
 
   @Test
   @SubjectAware(permissions = {"repository:read:1337"})
+  void shouldEnrichWithPredefinedKeysLink() {
+    GlobalConfig enabledConfig = new GlobalConfig(true, true, Set.of());
+    when(configService.getGlobalConfig()).thenReturn(enabledConfig);
+    when(context.oneRequireByType(Repository.class)).thenReturn(repository);
+    when(customPropertiesService.get(repository)).thenReturn(List.of());
+
+    enricher.enrich(context, appender);
+    verify(appender).appendLink(
+      "predefinedCustomPropertyKeys",
+      "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle/predefined-keys"
+    );
+  }
+
+  @Test
+  @SubjectAware(permissions = {"repository:read:1337"})
   void shouldEnrichWithCustomPropertiesAsEmbeddedButWithoutLinksBecauseModifyPermissionIsMissing() {
-    when(configService.getGlobalConfig()).thenReturn(new GlobalConfig(true));
+    GlobalConfig enabledConfig = new GlobalConfig(true, true, Set.of());
+
+    when(configService.getGlobalConfig()).thenReturn(enabledConfig);
     when(context.oneRequireByType(Repository.class)).thenReturn(repository);
     when(customPropertiesService.get(repository)).thenReturn(
       List.of(
@@ -128,7 +150,9 @@ class RepositoryEnricherTest {
   @Test
   @SubjectAware(permissions = {"repository:read,modify:1337"})
   void shouldEnrichWithCustomPropertiesAsEmbeddedAndWithModificationLinks() {
-    when(configService.getGlobalConfig()).thenReturn(new GlobalConfig(true));
+    GlobalConfig enabledConfig = new GlobalConfig(true, true, Set.of());
+
+    when(configService.getGlobalConfig()).thenReturn(enabledConfig);
     when(context.oneRequireByType(Repository.class)).thenReturn(repository);
     when(customPropertiesService.get(repository)).thenReturn(
       List.of(
