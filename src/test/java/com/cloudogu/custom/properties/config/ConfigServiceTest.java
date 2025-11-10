@@ -24,10 +24,11 @@ import sonia.scm.repository.RepositoryTestData;
 import sonia.scm.store.ConfigurationStoreFactory;
 import sonia.scm.store.InMemoryByteConfigurationStoreFactory;
 
-import java.util.Collection;
-import java.util.Set;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 class ConfigServiceTest {
 
@@ -48,14 +49,22 @@ class ConfigServiceTest {
       GlobalConfig globalConfig = new GlobalConfig();
       globalConfig.setEnabled(false);
       globalConfig.setEnableNamespaceConfig(false);
-      globalConfig.setPredefinedKeys(Set.of("lang", "java.jdbc"));
+      globalConfig.setPredefinedKeys(
+        Map.of(
+          "lang", new PredefinedKey(List.of("Java", "TypeScript")),
+          "arbitrary", new PredefinedKey(List.of())
+        )
+      );
 
       configService.setGlobalConfig(globalConfig);
       GlobalConfig result = configService.getGlobalConfig();
 
       assertThat(result.isEnabled()).isFalse();
       assertThat(result.isEnableNamespaceConfig()).isFalse();
-      assertThat(result.getPredefinedKeys()).containsOnly("lang", "java.jdbc");
+      assertThat(result.getPredefinedKeys()).containsOnly(
+        entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
+        entry("arbitrary", new PredefinedKey(List.of()))
+      );
     }
 
     @Test
@@ -73,12 +82,20 @@ class ConfigServiceTest {
     @Test
     void shouldSetAndGetConfig() {
       NamespaceConfig namespaceConfig = new NamespaceConfig();
-      namespaceConfig.setPredefinedKeys(Set.of("lang", "java.jdbc"));
+      namespaceConfig.setPredefinedKeys(
+        Map.of(
+          "lang", new PredefinedKey(List.of("Java", "TypeScript")),
+          "arbitrary", new PredefinedKey(List.of())
+        )
+      );
 
       configService.setNamespaceConfig("Kanto", namespaceConfig);
       NamespaceConfig result = configService.getNamespaceConfig("Kanto");
 
-      assertThat(result.getPredefinedKeys()).containsOnly("lang", "java.jdbc");
+      assertThat(result.getPredefinedKeys()).containsOnly(
+        entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
+        entry("arbitrary", new PredefinedKey(List.of()))
+      );
     }
 
     @Test
@@ -95,30 +112,76 @@ class ConfigServiceTest {
     @Test
     void shouldGetAllPredefinedKeysDefinedGloballyAndOnNamespaceLevel() {
       GlobalConfig globalConfig = new GlobalConfig();
-      globalConfig.setPredefinedKeys(Set.of("global.key"));
+      globalConfig.setPredefinedKeys(
+        Map.of(
+          "lang", new PredefinedKey(List.of("Java", "TypeScript"))
+        )
+      );
       configService.setGlobalConfig(globalConfig);
 
       NamespaceConfig namespaceConfig = new NamespaceConfig();
-      namespaceConfig.setPredefinedKeys(Set.of("namespace.key"));
+      namespaceConfig.setPredefinedKeys(
+        Map.of(
+          "arbitrary", new PredefinedKey(List.of())
+        )
+      );
       configService.setNamespaceConfig(REPOSITORY.getNamespace(), namespaceConfig);
 
-      Collection<String> result = configService.getAllPredefinedKeys(REPOSITORY);
-      assertThat(result).containsExactlyInAnyOrder("global.key", "namespace.key");
+      Map<String, PredefinedKey> result = configService.getAllPredefinedKeys(REPOSITORY);
+      assertThat(result).containsOnly(
+        entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
+        entry("arbitrary", new PredefinedKey(List.of()))
+      );
     }
 
     @Test
     void shouldNotGetNamespaceKeysBecauseItsDisabledOnGlobalLevel() {
       GlobalConfig globalConfig = new GlobalConfig();
-      globalConfig.setPredefinedKeys(Set.of("global.key"));
+      globalConfig.setPredefinedKeys(
+        Map.of(
+          "lang", new PredefinedKey(List.of("Java", "TypeScript"))
+        )
+      );
       globalConfig.setEnableNamespaceConfig(false);
       configService.setGlobalConfig(globalConfig);
 
       NamespaceConfig namespaceConfig = new NamespaceConfig();
-      namespaceConfig.setPredefinedKeys(Set.of("namespace.key"));
+      namespaceConfig.setPredefinedKeys(
+        Map.of(
+          "arbitrary", new PredefinedKey(List.of())
+        )
+      );
       configService.setNamespaceConfig(REPOSITORY.getNamespace(), namespaceConfig);
 
-      Collection<String> result = configService.getAllPredefinedKeys(REPOSITORY);
-      assertThat(result).containsExactlyInAnyOrder("global.key");
+      Map<String, PredefinedKey> result = configService.getAllPredefinedKeys(REPOSITORY);
+      assertThat(result).containsOnly(
+        entry("lang", new PredefinedKey(List.of("Java", "TypeScript")))
+      );
+    }
+
+    @Test
+    void shouldOverrideGlobalKeyIfNamespaceDefinesSameKey() {
+      GlobalConfig globalConfig = new GlobalConfig();
+      globalConfig.setPredefinedKeys(
+        Map.of(
+          "lang", new PredefinedKey(List.of("Java", "TypeScript"))
+        )
+      );
+      globalConfig.setEnableNamespaceConfig(true);
+      configService.setGlobalConfig(globalConfig);
+
+      NamespaceConfig namespaceConfig = new NamespaceConfig();
+      namespaceConfig.setPredefinedKeys(
+        Map.of(
+          "lang", new PredefinedKey(List.of("Rust", "Go"))
+        )
+      );
+      configService.setNamespaceConfig(REPOSITORY.getNamespace(), namespaceConfig);
+
+      Map<String, PredefinedKey> result = configService.getAllPredefinedKeys(REPOSITORY);
+      assertThat(result).containsOnly(
+        entry("lang", new PredefinedKey(List.of("Rust", "Go")))
+      );
     }
   }
 }

@@ -17,6 +17,8 @@
 package com.cloudogu.custom.properties;
 
 import com.cloudogu.custom.properties.config.ConfigService;
+import com.cloudogu.custom.properties.config.PredefinedKeyDto;
+import com.cloudogu.custom.properties.config.PredefinedKeyMapper;
 import com.google.inject.Inject;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,6 +49,7 @@ import sonia.scm.repository.RepositoryPermissions;
 import sonia.scm.web.VndMediaType;
 
 import java.util.Collection;
+import java.util.Map;
 
 import static sonia.scm.NotFoundException.notFound;
 
@@ -62,16 +65,19 @@ public class CustomPropertiesResource {
   private final CustomPropertiesService service;
   private final ConfigService configService;
   private final CustomPropertyMapper customPropertyMapper;
+  private final PredefinedKeyMapper predefinedKeyMapper;
 
   @Inject
   public CustomPropertiesResource(RepositoryManager repositoryManager,
                                   CustomPropertiesService service,
                                   ConfigService configService,
-                                  CustomPropertyMapper customPropertyMapper) {
+                                  CustomPropertyMapper customPropertyMapper,
+                                  PredefinedKeyMapper predefinedKeyMapper) {
     this.repositoryManager = repositoryManager;
     this.service = service;
     this.configService = configService;
     this.customPropertyMapper = customPropertyMapper;
+    this.predefinedKeyMapper = predefinedKeyMapper;
   }
 
   @GET
@@ -156,14 +162,14 @@ public class CustomPropertiesResource {
     )
   )
   @Produces(MediaType.APPLICATION_JSON)
-  public Collection<String> readPredefinedKeys(@PathParam("namespace") String namespace,
-                                               @PathParam("name") String name,
-                                               @QueryParam("filter") @DefaultValue("") String filter) {
+  public Map<String, PredefinedKeyDto> readPredefinedKeys(@PathParam("namespace") String namespace,
+                                                          @PathParam("name") String name,
+                                                          @QueryParam("filter") @DefaultValue("") String filter) {
     checkIsFeatureEnabled();
     Repository repository = tryToGetRepository(namespace, name);
     RepositoryPermissions.read(repository).check();
 
-    return service.getFilteredPredefinedKeys(repository, filter).stream().sorted().toList();
+    return predefinedKeyMapper.mapAll(service.getFilteredPredefinedKeys(repository, filter));
   }
 
   @PUT

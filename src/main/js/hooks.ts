@@ -14,9 +14,9 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { HalRepresentation, Link, Option, Repository } from "@scm-manager/ui-types";
+import { HalRepresentation, Link, Repository } from "@scm-manager/ui-types";
 import { useMutation, useQuery, useQueryClient } from "react-query";
-import { CustomProperty } from "./types";
+import { CustomProperty, PredefinedKeys } from "./types";
 import { apiClient } from "@scm-manager/ui-api";
 
 const customPropertyContentType = "application/vnd.scmm-CustomProperty+json;v=2";
@@ -65,23 +65,9 @@ export const useDeleteCustomProperty = (repository: Repository) => {
 
 export const useQueryPredefinedKeys = (repository: Repository, filter: string) => {
   const predefinedKeysLink = requiredLink(repository, "predefinedCustomPropertyKeys");
-  return useQuery<Option<string>[], Error>(
+  return useQuery<PredefinedKeys, Error>(
     ["repository", repository.namespace, repository.name, "predefinedKeys", filter],
-    () =>
-      apiClient
-        .get(`${predefinedKeysLink}?filter=${filter}`)
-        .then((response) => response.json())
-        .then((data: string[]) => {
-          const result = data.map((key) => {
-            return { label: key, value: key };
-          });
-
-          if (filter !== "" && !result.some((option) => option.value === filter)) {
-            result.unshift({ label: filter, value: filter });
-          }
-
-          return result;
-        }),
+    () => apiClient.get(`${predefinedKeysLink}?filter=${filter}`).then((response) => response.json()),
   );
 };
 

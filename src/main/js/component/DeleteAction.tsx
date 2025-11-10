@@ -32,7 +32,10 @@ const DeleteAction = <T extends BaseConfig>({ originalKey, config, update, isLoa
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const onConfirmDelete = async () => {
-    update({ ...config, predefinedKeys: config.predefinedKeys.filter((key) => key !== originalKey) });
+    const predefinedKeys = { ...config.predefinedKeys };
+    delete predefinedKeys[originalKey];
+
+    update({ ...config, predefinedKeys });
   };
 
   return (

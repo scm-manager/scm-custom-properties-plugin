@@ -34,11 +34,23 @@ const Tag: FC<{ children: React.ReactNode }> = ({ children }) => {
   return <span className="tag is-outlined is-link is-rounded ml-2">{children}</span>;
 };
 
+const AllowedValuesColumn: FC<{ key: string; allowedValues: string[] }> = ({ key, allowedValues }) => {
+  return (
+    <ul>
+      {[...allowedValues]
+        .sort((valueA, valueB) => valueA.localeCompare(valueB))
+        .map((value) => (
+          <li key={`${key}-${value}`}>{value}</li>
+        ))}
+    </ul>
+  );
+};
+
 const PredefinedKeys = <T extends BaseConfig>({ config, update, isLoading, editBaseUrl }: PredefinedKeysProps<T>) => {
   const [t] = useTranslation("plugins");
 
   const globallyPredefinedKeys =
-    "globallyPredefinedKeys" in config ? (config as NamespaceConfig).globallyPredefinedKeys : [];
+    "globallyPredefinedKeys" in config ? (config as NamespaceConfig).globallyPredefinedKeys : {};
   const globallyPredefinedTag = t("scm-custom-properties-plugin.config.template.global");
 
   return (
@@ -46,30 +58,41 @@ const PredefinedKeys = <T extends BaseConfig>({ config, update, isLoading, editB
       <thead>
         <tr>
           <th>{t("scm-custom-properties-plugin.table.header.key")}</th>
+          <th>{t("scm-custom-properties-plugin.table.header.allowedValues")}</th>
           <th>{t("scm-custom-properties-plugin.table.header.action")}</th>
         </tr>
       </thead>
       <tbody>
-        {globallyPredefinedKeys.map((key) => (
-          <tr key={key}>
-            <td colSpan={2}>
-              {key}
-              <Tag>{globallyPredefinedTag}</Tag>
-            </td>
-          </tr>
-        ))}
-        {config.predefinedKeys.map((key) => (
-          <tr key={key}>
-            <td>{key}</td>
-            <MinWidthTableCell>
-              <EditAction
-                editUrl={`${editBaseUrl}/predefinedKeys/${encodeURIComponent(key)}`}
-                ariaLabel={t("scm-custom-properties-plugin.table.body.edit", { key })}
-              />
-              <DeleteAction originalKey={key} update={update} config={config} isLoading={isLoading} />
-            </MinWidthTableCell>
-          </tr>
-        ))}
+        {Object.entries(globallyPredefinedKeys)
+          .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+          .map(([key, definition]) => (
+            <tr key={key}>
+              <td>
+                {key}
+                <Tag>{globallyPredefinedTag}</Tag>
+              </td>
+              <td>
+                <AllowedValuesColumn key={key} allowedValues={definition.allowedValues} />
+              </td>
+            </tr>
+          ))}
+        {Object.entries(config.predefinedKeys)
+          .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+          .map(([key, definition]) => (
+            <tr key={key}>
+              <td>{key}</td>
+              <td>
+                <AllowedValuesColumn key={key} allowedValues={definition.allowedValues} />
+              </td>
+              <MinWidthTableCell>
+                <EditAction
+                  editUrl={`${editBaseUrl}/predefinedKeys/${encodeURIComponent(key)}`}
+                  ariaLabel={t("scm-custom-properties-plugin.table.body.edit", { key })}
+                />
+                <DeleteAction originalKey={key} update={update} config={config} isLoading={isLoading} />
+              </MinWidthTableCell>
+            </tr>
+          ))}
       </tbody>
       <CenteredTableFooter>
         <tr>

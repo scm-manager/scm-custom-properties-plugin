@@ -17,6 +17,7 @@
 package com.cloudogu.custom.properties.config;
 
 import de.otto.edison.hal.HalRepresentation;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -24,7 +25,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.util.Set;
+import java.util.Map;
 
 @EqualsAndHashCode(callSuper = false)
 @Data
@@ -32,10 +33,13 @@ import java.util.Set;
 class BaseConfigDto extends HalRepresentation {
 
   @NotNull
-  private Set<
+  private Map<
     @NotNull
     @Size(min = 1, max = 255)
     @Pattern(regexp = "^[a-zA-Z_ 0-9.\\-:@/]*$")
-    String
-  > predefinedKeys;
+      String,
+    @NotNull
+    @Valid
+      PredefinedKeyDto
+    > predefinedKeys;
 }

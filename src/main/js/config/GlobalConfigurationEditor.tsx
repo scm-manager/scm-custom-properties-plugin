@@ -18,10 +18,13 @@ import React, { FC } from "react";
 import ConfigEditor from "./ConfigEditor";
 import { useConfigLink } from "@scm-manager/ui-api";
 import { GlobalConfig } from "../types";
-import { ErrorNotification, Loading } from "@scm-manager/ui-core";
+import { ErrorNotification, Loading, useDocumentTitle } from "@scm-manager/ui-core";
+import { useTranslation } from "react-i18next";
 
 const GlobalConfigurationEditor: FC<{ link: string }> = ({ link }) => {
+  const [t] = useTranslation("plugins");
   const { isLoading, error, initialConfiguration: config, update } = useConfigLink<GlobalConfig>(link);
+  useDocumentTitle(t("scm-custom-properties-plugin.config.title"), t("scm-custom-properties-plugin.config.edit"));
   const baseUrl = "/admin/settings/custom-properties";
 
   if (isLoading) {

@@ -16,7 +16,7 @@
 
 import { Namespace } from "@scm-manager/ui-types";
 import React, { FC } from "react";
-import { ErrorNotification, Loading, SubSubtitle, Subtitle } from "@scm-manager/ui-core";
+import { ErrorNotification, Loading, SubSubtitle, Subtitle, useDocumentTitle } from "@scm-manager/ui-core";
 import { useTranslation } from "react-i18next";
 import { useConfigLink } from "@scm-manager/ui-api";
 import { NamespaceConfig } from "../types";
@@ -25,6 +25,7 @@ import PredefinedKeys from "./PredefinedKeys";
 const NamespaceConfiguration: FC<{ link: string; namespace: Namespace }> = ({ link, namespace }) => {
   const [t] = useTranslation("plugins");
   const { isLoading, error, initialConfiguration: config, update, isUpdating } = useConfigLink<NamespaceConfig>(link);
+  useDocumentTitle(t("scm-custom-properties-plugin.config.title"), namespace.namespace);
   const baseUrl = `/namespace/${namespace.namespace}/settings/custom-properties`;
   const editUrl = `${baseUrl}/edit`;
 

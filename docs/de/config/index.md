@@ -22,6 +22,14 @@ Dadurch wird der Benutzer zu einer neuen Unterseite navigiert.
 Hier kann der Benutzer in einem Text-Input einen neuen Schlüssel definieren.
 Für vordefinierte Schlüssel gelten die gleichen Validierungsregeln, wie beim Anlegen einer Custom Property ([siehe Dokumentation zur Übersicht](../overview)).
 
+Zusätzlich kann der Benutzer mit einem Chip-Input eine Liste von Werten definieren, welche
+für Custom Properties mit dem jeweiligen Schlüssel verwendet werden dürfen.
+Um einen Wert hinzuzufügen, muss dieser im Eingabefeld eingegeben und anschließend mit der Eingabetaste
+bestätigt werden. Bestehende Werte können mit den kleinen "x"-Symbol neben dem Wert wieder aus der Liste entfernt werden.
+Bereits für Repositories gesetzte Properties werden bei einer Änderung der Konfiguration nicht nachträglich validiert.
+
+![Vordefinierte Werte zu einem vordefinierten Schlüssel](./assets/predefined_values.png)
+
 Die vordefinierten Schlüssel können auch in der Schlüsselübersicht mithilfe der jeweiligen Aktions-Buttons bearbeitet und gelöscht werden.
 
 ![Definition von Schlüsseln auf globaler Ebene](./assets/predefined_keys_globally.png)

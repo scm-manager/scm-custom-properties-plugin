@@ -16,7 +16,15 @@
 
 import React, { FC, useState } from "react";
 import { HalRepresentation, Repository } from "@scm-manager/ui-types";
-import { Subtitle, LinkButton, IconButton, Icon, Dialog, Button } from "@scm-manager/ui-core";
+import {
+  Subtitle,
+  LinkButton,
+  IconButton,
+  Icon,
+  Dialog,
+  Button,
+  useDocumentTitleForRepository,
+} from "@scm-manager/ui-core";
 import { useTranslation } from "react-i18next";
 import { SmallLoadingSpinner } from "@scm-manager/ui-components";
 import { CustomProperty } from "../types";
@@ -105,15 +113,17 @@ const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({ repository, cus
         </tr>
       </thead>
       <tbody>
-        {customProperties.map((property) => (
-          <tr key={property.key}>
-            <td>{property.key}</td>
-            <td>{property.value}</td>
-            <MinWidthTableCell>
-              <CustomPropertyAction repository={repository} customProperty={property} modifyUrl={modifyUrl} />
-            </MinWidthTableCell>
-          </tr>
-        ))}
+        {[...customProperties]
+          .sort((propA, propB) => propA.key.localeCompare(propB.key))
+          .map((property) => (
+            <tr key={property.key}>
+              <td>{property.key}</td>
+              <td>{property.value}</td>
+              <MinWidthTableCell>
+                <CustomPropertyAction repository={repository} customProperty={property} modifyUrl={modifyUrl} />
+              </MinWidthTableCell>
+            </tr>
+          ))}
       </tbody>
       {isCreateAllowed ? (
         <CenteredTableFooter>
@@ -136,6 +146,7 @@ type Props = {
 
 const CustomPropertiesOverview: FC<Props> = ({ repository }) => {
   const [t] = useTranslation("plugins");
+  useDocumentTitleForRepository(repository, t("scm-custom-properties-plugin.repository.subtitle"));
   const customProperties = (repository._embedded?.customProperties as { properties: CustomProperty[] }).properties;
   const modifyUrl = `/repo/${repository.namespace}/${repository.name}/custom-properties/modify`;
 

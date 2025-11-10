@@ -34,7 +34,10 @@ When creating the property, make sure that the key
 3. is unique within a repository(each key can be assigned only once).
 
 Multiple values for the same key must be entered as a single property separated by commas. 
-There are no restrictions on the value.
+There are no restrictions on the value, unless a predefined key is being used with predefined values.
+If this is the case, then the user can select one of the allowed values within a dropdown element.
+
+![Creation of a custom property with predefined values](./assets/custom_property_with_predefined_values.png)
 
 For each custom property in the overview, there is a separate button for editing and deleting properties.
 A property is edited in a similar way as it is created.

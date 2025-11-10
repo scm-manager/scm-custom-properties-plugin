@@ -22,13 +22,17 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @XmlAccessorType(XmlAccessType.FIELD)
-public abstract class BaseConfig {
-  private Map<String, PredefinedKey> predefinedKeys = new HashMap<>();
+public class PredefinedKey {
+  private List<String> allowedValues = new ArrayList<>();
+  
+  public boolean isValueValid(String value) {
+    return allowedValues.isEmpty() || allowedValues.contains(value);
+  }
 }

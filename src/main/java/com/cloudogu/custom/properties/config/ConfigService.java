@@ -21,9 +21,8 @@ import sonia.scm.repository.Repository;
 import sonia.scm.store.ConfigurationStore;
 import sonia.scm.store.ConfigurationStoreFactory;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ConfigService {
 
@@ -66,12 +65,12 @@ public class ConfigService {
       .build();
   }
 
-  public Collection<String> getAllPredefinedKeys(Repository repository) {
+  public Map<String, PredefinedKey> getAllPredefinedKeys(Repository repository) {
     GlobalConfig globalConfig = getGlobalConfig();
-    Set<String> result = new HashSet<>(globalConfig.getPredefinedKeys());
+    Map<String, PredefinedKey> result = new HashMap<>(globalConfig.getPredefinedKeys());
 
     if (globalConfig.isEnableNamespaceConfig()) {
-      result.addAll(getNamespaceConfig(repository.getNamespace()).getPredefinedKeys());
+      result.putAll(getNamespaceConfig(repository.getNamespace()).getPredefinedKeys());
     }
 
     return result;

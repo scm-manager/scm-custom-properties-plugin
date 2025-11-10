@@ -14,7 +14,7 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { Subtitle, Title, Loading, ErrorNotification } from "@scm-manager/ui-core";
+import { Subtitle, Title, Loading, ErrorNotification, useDocumentTitle } from "@scm-manager/ui-core";
 import React, { FC } from "react";
 import { useTranslation } from "react-i18next";
 import { GlobalConfig } from "../types";
@@ -25,6 +25,7 @@ import PredefinedKeys from "./PredefinedKeys";
 const GlobalConfiguration: FC<{ link: string }> = ({ link }) => {
   const [t] = useTranslation("plugins");
   const { isLoading, error, initialConfiguration: config, update, isUpdating } = useConfigLink<GlobalConfig>(link);
+  useDocumentTitle(t("scm-custom-properties-plugin.config.title"));
   const baseUrl = "/admin/settings/custom-properties";
   const editUrl = `${baseUrl}/edit`;
 

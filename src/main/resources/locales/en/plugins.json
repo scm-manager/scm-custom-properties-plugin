@@ -3,6 +3,7 @@
     "navLink": "Custom Properties",
     "config": {
       "title": "Custom Properties Configuration",
+      "edit": "Edit",
       "general": {
         "enabled": {
           "title": "Plugin Enablement",
@@ -25,6 +26,10 @@
           "edit": {
             "ariaLabel": "Edit whether custom properties from the namespace config will be used"
           }
+        },
+        "allowedValues": {
+          "label": "Allowed values (optional)",
+          "note": "Enter values, if you want to limit which values are allowed for this key."
         },
         "predefinedKeys": {
           "title": "Custom Properties",
@@ -67,6 +72,7 @@
     "editor": {
       "subtitle_create": "Add new custom property",
       "subtitle_edit": "Edit custom property with key '{{key}}'",
+      "predefinedValuesNote": "For this key, the possible values are predefined in the plugin configuration. Please choose one.",
       "key": {
         "label": "Key",
         "tooLong": "The maximum length of a key is 255 characters",
@@ -83,7 +89,8 @@
         "key": "Key",
         "value": "Value",
         "action": "Action",
-        "setting": "Setting"
+        "setting": "Setting",
+        "allowedValues": "Allowed Values"
       },
       "body": {
         "edit": "Edit entry with the key {{key}}",
@@ -126,6 +133,12 @@
         "displayName": "Modify configuration for custom properties",
         "description": "May modify configuration for custom properties"
       }
+    }
+  },
+  "errors": {
+    "3q5Pm3kktO": {
+      "displayName": "Invalid Value",
+      "description": "The value for the key is invalid"
     }
   },
   "search": {

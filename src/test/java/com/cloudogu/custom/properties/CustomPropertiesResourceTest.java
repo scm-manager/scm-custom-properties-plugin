@@ -18,6 +18,9 @@ package com.cloudogu.custom.properties;
 
 import com.cloudogu.custom.properties.config.ConfigService;
 import com.cloudogu.custom.properties.config.GlobalConfig;
+import com.cloudogu.custom.properties.config.PredefinedKey;
+import com.cloudogu.custom.properties.config.PredefinedKeyMapperImpl;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.github.sdorra.jse.ShiroExtension;
 import org.github.sdorra.jse.SubjectAware;
 import org.jboss.resteasy.mock.MockHttpRequest;
@@ -36,13 +39,14 @@ import sonia.scm.store.ConfigurationEntryStoreFactory;
 import sonia.scm.store.DataStore;
 import sonia.scm.store.InMemoryByteConfigurationEntryStoreFactory;
 import sonia.scm.store.InMemoryByteConfigurationStoreFactory;
+import sonia.scm.web.JsonMockHttpResponse;
 import sonia.scm.web.RestDispatcher;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
 import static jakarta.ws.rs.core.Response.Status.CONFLICT;
@@ -58,55 +62,40 @@ import static org.mockito.Mockito.lenient;
 @ExtendWith({MockitoExtension.class, ShiroExtension.class})
 class CustomPropertiesResourceTest {
 
-  @Mock
-  ScmEventBus eventBus;
-
   private static final String TEST_KEY = "hello";
-
   private static final String TEST_KEY_VALUE = """
     { "key": "hello", "value": "world"}
     """;
-
   private static final String TEST_KEY_VALUE_2_SAME_KEY = """
     { "key": "hello", "value": "monde"}
     """;
-
   private static final String TEST_KEY_VALUE_2_DIFF_KEY = """
     { "key": "ice", "value": "cream"}
     """;
-
   private static final String TEST_KEY_VALUE_WITH_JSON_LITERAL = """
     { "key": "someJson", "value": "[{'key': 'lorem_ipsum', 'text': 'aöß76&$'}, {'key': 'lorem_ipsum2', 'text': 'hello'}]"}
     """;
-
   private static final String TEST_KEY_VALUE_INVALID_KEY = """
     { "key": "maßband", "value": "12cm"}
     """;
-
   private static final String TEST_KEY_VALUE_WITH_ALL_ALLOWED_KEY_CHARS = """
     { "key": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789. _-:@/", "value": "12cm"}
     """;
-
   private static final String TEST_KEY_VALUE_REPLACEMENT = """
       {"key": "hallo", "value": "welt"}
     """;
-
   private static final String TEST_KEY_VALUE_INVALID_REPLACEMENT = """
       {"key": "this-is-extreme#", "value": "somethingelse"}
     """;
-
-  private Repository repository;
-
-  private RestDispatcher dispatcher;
-
-  private ConfigService configService;
-
   private final CustomPropertyMapper customPropertyMapper = new CustomPropertyMapperImpl();
-
+  private final ConfigurationEntryStoreFactory storeFactory = new InMemoryByteConfigurationEntryStoreFactory();
+  @Mock
+  ScmEventBus eventBus;
+  private Repository repository;
+  private RestDispatcher dispatcher;
+  private ConfigService configService;
   @Mock
   private RepositoryManager repositoryManager;
-
-  private final ConfigurationEntryStoreFactory storeFactory = new InMemoryByteConfigurationEntryStoreFactory();
 
   @BeforeEach
   void setUp() {
@@ -116,7 +105,8 @@ class CustomPropertiesResourceTest {
       repositoryManager,
       new CustomPropertiesService(storeFactory, configService, eventBus),
       configService,
-      customPropertyMapper
+      customPropertyMapper,
+      new PredefinedKeyMapperImpl()
     );
 
     dispatcher = new RestDispatcher();
@@ -155,70 +145,69 @@ class CustomPropertiesResourceTest {
 
     @Test
     @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
-    void shouldReturnCollectionWithoutFilter() throws URISyntaxException, UnsupportedEncodingException {
+    void shouldReturnCollectionWithoutFilter() throws URISyntaxException {
       GlobalConfig globalConfig = new GlobalConfig();
-      globalConfig.setPredefinedKeys(Set.of("lang"));
+      globalConfig.setPredefinedKeys(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript"))
+      ));
       configService.setGlobalConfig(globalConfig);
 
       String uri = format("/v2/custom-properties/%s/%s/predefined-keys", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.get(uri);
-      MockHttpResponse response = new MockHttpResponse();
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
 
       dispatcher.invoke(request, response);
 
       assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
-      assertThat(response.getContentAsString()).isEqualTo("[\"lang\"]");
+
+      JsonNode responseBody = response.getContentAsJson();
+      assertThat(responseBody.get("lang").get("allowedValues").get(0).asText()).isEqualTo("Java");
+      assertThat(responseBody.get("lang").get("allowedValues").get(1).asText()).isEqualTo("TypeScript");
     }
 
     @Test
     @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
-    void shouldReturnCollectionWithFilter() throws URISyntaxException, UnsupportedEncodingException {
+    void shouldReturnCollectionWithFilter() throws URISyntaxException {
       GlobalConfig globalConfig = new GlobalConfig();
-      globalConfig.setPredefinedKeys(Set.of("lang", "java.jdbc"));
+      globalConfig.setPredefinedKeys(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript")),
+        "arbitrary", new PredefinedKey(List.of())
+      ));
       configService.setGlobalConfig(globalConfig);
 
       String uri = format("/v2/custom-properties/%s/%s/predefined-keys?filter=l", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.get(uri);
-      MockHttpResponse response = new MockHttpResponse();
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
 
       dispatcher.invoke(request, response);
 
       assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
-      assertThat(response.getContentAsString()).isEqualTo("[\"lang\"]");
+
+      JsonNode responseBody = response.getContentAsJson();
+      assertThat(responseBody.get("lang").get("allowedValues").get(0).asText()).isEqualTo("Java");
+      assertThat(responseBody.get("lang").get("allowedValues").get(1).asText()).isEqualTo("TypeScript");
     }
 
     @Test
     @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
-    void shouldReturnCollectionWithEmptyFilter() throws URISyntaxException, UnsupportedEncodingException {
+    void shouldReturnCollectionWithEmptyFilter() throws URISyntaxException {
       GlobalConfig globalConfig = new GlobalConfig();
-      globalConfig.setPredefinedKeys(Set.of("lang"));
+      globalConfig.setPredefinedKeys(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript"))
+      ));
       configService.setGlobalConfig(globalConfig);
 
       String uri = format("/v2/custom-properties/%s/%s/predefined-keys?filter=", repository.getNamespace(), repository.getName());
       MockHttpRequest request = MockHttpRequest.get(uri);
-      MockHttpResponse response = new MockHttpResponse();
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
 
       dispatcher.invoke(request, response);
 
       assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
-      assertThat(response.getContentAsString()).isEqualTo("[\"lang\"]");
-    }
 
-    @Test
-    @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
-    void shouldReturnSortedKeys() throws URISyntaxException, UnsupportedEncodingException {
-      GlobalConfig globalConfig = new GlobalConfig();
-      globalConfig.setPredefinedKeys(Set.of("c", "a", "b"));
-      configService.setGlobalConfig(globalConfig);
-
-      String uri = format("/v2/custom-properties/%s/%s/predefined-keys?filter=", repository.getNamespace(), repository.getName());
-      MockHttpRequest request = MockHttpRequest.get(uri);
-      MockHttpResponse response = new MockHttpResponse();
-
-      dispatcher.invoke(request, response);
-
-      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
-      assertThat(response.getContentAsString()).isEqualTo("[\"a\",\"b\",\"c\"]");
+      JsonNode responseBody = response.getContentAsJson();
+      assertThat(responseBody.get("lang").get("allowedValues").get(0).asText()).isEqualTo("Java");
+      assertThat(responseBody.get("lang").get("allowedValues").get(1).asText()).isEqualTo("TypeScript");
     }
   }
 
@@ -640,7 +629,7 @@ class CustomPropertiesResourceTest {
     @Test
     @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
     void shouldReturnForbiddenIfPluginIsDisabled() throws URISyntaxException {
-      GlobalConfig disabledPlugin = new  GlobalConfig();
+      GlobalConfig disabledPlugin = new GlobalConfig();
       disabledPlugin.setEnabled(false);
       configService.setGlobalConfig(disabledPlugin);
 

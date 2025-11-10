@@ -14,9 +14,9 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import React from "react";
+import React, { useRef } from "react";
 import { Redirect, useHistory, useParams } from "react-router";
-import { BaseConfig } from "../types";
+import { BaseConfig, PredefinedKeys, SinglePredefinedKey } from "../types";
 import { useTranslation } from "react-i18next";
 import { Form, Subtitle, Title } from "@scm-manager/ui-core";
 import { validateKey } from "../validation";
@@ -35,21 +35,27 @@ type EditKeyProps<T extends BaseConfig> = {
   originalKey: string;
 } & ConfigEditorProps<T>;
 
-type EditKeyConfig<T extends BaseConfig> = T & { editedKey: string };
+type EditKeyConfig<T extends BaseConfig> = T & { editedKey: string } & SinglePredefinedKey;
 
-type AddKeyConfig<T extends BaseConfig> = T & { addedKey: string };
+type AddKeyConfig<T extends BaseConfig> = T & { addedKey: string } & SinglePredefinedKey;
 
 const AddKey = <T extends BaseConfig>({ config, update, redirectUrl }: ConfigEditorProps<T>) => {
   const [t] = useTranslation("plugins");
   const history = useHistory();
+  const ref = useRef<HTMLInputElement>(null);
 
   const onSubmit = async (updatedConfig: AddKeyConfig<T>) => {
-    await update({ ...updatedConfig, predefinedKeys: [...updatedConfig.predefinedKeys, updatedConfig.addedKey] });
+    const addedKey: PredefinedKeys = {};
+    addedKey[updatedConfig.addedKey] = {
+      allowedValues: updatedConfig.allowedValues,
+    };
+
+    await update({ ...updatedConfig, predefinedKeys: { ...updatedConfig.predefinedKeys, ...addedKey } });
     history.push(redirectUrl);
   };
 
   const keyValidator = (key: string) => {
-    const result = validateKey(key, undefined, (key) => config.predefinedKeys.includes(key));
+    const result = validateKey(key, undefined, (key) => Object.keys(config.predefinedKeys).includes(key));
 
     if (result) {
       return t(`scm-custom-properties-plugin.editor.key.${result}`);
@@ -60,12 +66,18 @@ const AddKey = <T extends BaseConfig>({ config, update, redirectUrl }: ConfigEdi
     <Form<AddKeyConfig<T>>
       translationPath={["plugins", "scm-custom-properties-plugin.config.general"]}
       onSubmit={onSubmit}
-      defaultValues={{ addedKey: "", ...config }}
+      defaultValues={{ addedKey: "", validationEnabled: false, allowedValues: [], ...config }}
     >
       <Title>{t("scm-custom-properties-plugin.config.general.predefinedKeys.title")}</Title>
       <Subtitle>{t("scm-custom-properties-plugin.config.general.predefinedKeys.subtitle")}</Subtitle>
       <Form.Row>
         <Form.Input name="addedKey" rules={{ required: true, validate: keyValidator }} autoFocus />
+      </Form.Row>
+      <Form.Row>
+        <p className="pl-4">{t("scm-custom-properties-plugin.config.general.allowedValues.note")}</p>
+      </Form.Row>
+      <Form.Row>
+        <Form.ChipInput name="allowedValues" ref={ref} />
       </Form.Row>
     </Form>
   );
@@ -74,10 +86,14 @@ const AddKey = <T extends BaseConfig>({ config, update, redirectUrl }: ConfigEdi
 const EditKey = <T extends BaseConfig>({ config, update, originalKey, redirectUrl }: EditKeyProps<T>) => {
   const [t] = useTranslation("plugins");
   const history = useHistory();
+  const ref = useRef<HTMLInputElement>(null);
 
   const onSubmit = async (updatedConfig: EditKeyConfig<T>) => {
-    const predefinedKeys = updatedConfig.predefinedKeys.filter((key) => key !== originalKey);
-    predefinedKeys.push(updatedConfig.editedKey);
+    const predefinedKeys = { ...updatedConfig.predefinedKeys };
+    delete predefinedKeys[originalKey];
+    predefinedKeys[updatedConfig.editedKey] = {
+      allowedValues: updatedConfig.allowedValues,
+    };
 
     await update({ ...updatedConfig, predefinedKeys });
 
@@ -85,7 +101,7 @@ const EditKey = <T extends BaseConfig>({ config, update, originalKey, redirectUr
   };
 
   const keyValidator = (key: string) => {
-    const result = validateKey(key, originalKey, (key) => config.predefinedKeys.includes(key));
+    const result = validateKey(key, originalKey, (key) => Object.keys(config.predefinedKeys).includes(key));
 
     if (result) {
       return t(`scm-custom-properties-plugin.editor.key.${result}`);
@@ -96,12 +112,22 @@ const EditKey = <T extends BaseConfig>({ config, update, originalKey, redirectUr
     <Form<EditKeyConfig<T>>
       translationPath={["plugins", "scm-custom-properties-plugin.config.general"]}
       onSubmit={onSubmit}
-      defaultValues={{ editedKey: originalKey, ...config }}
+      defaultValues={{
+        editedKey: originalKey,
+        allowedValues: [...config.predefinedKeys[originalKey].allowedValues],
+        ...config,
+      }}
     >
       <Title>{t("scm-custom-properties-plugin.config.general.predefinedKeys.title")}</Title>
       <Subtitle>{t("scm-custom-properties-plugin.config.general.predefinedKeys.subtitle")}</Subtitle>
       <Form.Row>
         <Form.Input name="editedKey" rules={{ required: true, validate: keyValidator }} autoFocus />
+      </Form.Row>
+      <Form.Row>
+        <p className="pl-4">{t("scm-custom-properties-plugin.config.general.allowedValues.note")}</p>
+      </Form.Row>
+      <Form.Row>
+        <Form.ChipInput name="allowedValues" ref={ref} />
       </Form.Row>
     </Form>
   );
@@ -152,7 +178,7 @@ const ConfigEditor = <T extends BaseConfig>({ config, update, redirectUrl }: Con
   }
 
   const originalKey = decodeURIComponent(params.selector ?? "");
-  if (params.field === "predefinedKeys" && originalKey && config.predefinedKeys.includes(originalKey)) {
+  if (params.field === "predefinedKeys" && originalKey && Object.keys(config.predefinedKeys).includes(originalKey)) {
     return <EditKey originalKey={originalKey} config={config} update={update} redirectUrl={redirectUrl} />;
   }
 

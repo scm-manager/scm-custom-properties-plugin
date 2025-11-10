@@ -36,7 +36,8 @@ import sonia.scm.web.RestDispatcher;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Set;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -64,6 +65,7 @@ class ConfigResourceTest {
     globalConfigMapper.setScmPathInfoStore(pathInfoStore);
     NamespaceConfigMapper namespaceConfigMapper = new NamespaceConfigMapperImpl();
     namespaceConfigMapper.setScmPathInfoStore(pathInfoStore);
+    namespaceConfigMapper.setPredefinedKeyMapper(new PredefinedKeyMapperImpl());
 
     ConfigResource resource = new ConfigResource(
       configService,
@@ -92,11 +94,15 @@ class ConfigResourceTest {
       String expectedLink = domain + namespaceConfigPath.substring(1);
 
       GlobalConfig globalConfig = new GlobalConfig();
-      globalConfig.setPredefinedKeys(Set.of("java.jdbc"));
+      globalConfig.setPredefinedKeys(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript"))
+      ));
       when(configService.getGlobalConfig()).thenReturn(globalConfig);
 
       NamespaceConfig expected = new NamespaceConfig();
-      expected.setPredefinedKeys(Set.of("lang"));
+      expected.setPredefinedKeys(Map.of(
+        "arbitrary", new PredefinedKey(List.of())
+      ));
       when(configService.getNamespaceConfig(namespace)).thenReturn(expected);
 
       MockHttpRequest request = MockHttpRequest.get(namespaceConfigPath);
@@ -105,8 +111,12 @@ class ConfigResourceTest {
 
       assertThat(response.getStatus()).isEqualTo(200);
       JsonNode responseBody = response.getContentAsJson();
-      assertThat(responseBody.get("predefinedKeys").get(0).asText()).isEqualTo("lang");
-      assertThat(responseBody.get("globallyPredefinedKeys").get(0).asText()).isEqualTo("java.jdbc");
+
+      assertThat(responseBody.get("predefinedKeys").get("arbitrary").get("allowedValues").size()).isZero();
+
+      assertThat(responseBody.get("globallyPredefinedKeys").get("lang").get("allowedValues").get(0).asText()).isEqualTo("Java");
+      assertThat(responseBody.get("globallyPredefinedKeys").get("lang").get("allowedValues").get(1).asText()).isEqualTo("TypeScript");
+
       assertThat(responseBody.get("_links").get("update").get("href").asText()).isEqualTo(expectedLink);
       assertThat(responseBody.get("_links").get("self").get("href").asText()).isEqualTo(expectedLink);
     }
@@ -116,7 +126,7 @@ class ConfigResourceTest {
       JsonMockHttpRequest request = JsonMockHttpRequest
         .put(namespaceConfigPath)
         .contentType(MediaType.APPLICATION_JSON)
-        .json("{ 'predefinedKeys': ['lang'] }");
+        .json("{ 'predefinedKeys': {} }");
       JsonMockHttpResponse response = new JsonMockHttpResponse();
       dispatcher.invoke(request, response);
 
@@ -128,9 +138,8 @@ class ConfigResourceTest {
       strings = {
         "{ }",
         "{ 'predefinedKeys': null }",
-        "{ 'predefinedKeys': [ null ] }",
-        "{ 'predefinedKeys': [ '' ] }",
-        "{ 'predefinedKeys': [ 'Ungültiger/Schlüssel' ] }"
+        "{ 'predefinedKeys': { '': {'validationEnabled': false, 'allowedValues': [] } } }",
+        "{ 'predefinedKeys': { 'Ungültiger/Schlüssel': {'validationEnabled': false, 'allowedValues': [] } } }"
       }
     )
     void shouldReturnBadRequestBecausePredefinedKeysAreMalformed(String predefinedKeys) throws URISyntaxException {
@@ -150,7 +159,10 @@ class ConfigResourceTest {
       JsonMockHttpRequest request = JsonMockHttpRequest
         .put(namespaceConfigPath)
         .contentType(MediaType.APPLICATION_JSON)
-        .json(String.format("{ 'predefinedKeys': [ '%s' ] }", "a".repeat(256)));
+        .json(String.format(
+          "{ 'predefinedKeys': { '%s': {'validationEnabled': false, 'allowedValues': [] } } }",
+          "a".repeat(256))
+        );
       JsonMockHttpResponse response = new JsonMockHttpResponse();
       dispatcher.invoke(request, response);
 
@@ -161,12 +173,14 @@ class ConfigResourceTest {
     @SubjectAware(permissions = {"namespace:customProperties:hitchhiker"})
     void shouldSetNamespaceConfiguration() throws URISyntaxException {
       NamespaceConfig expected = new NamespaceConfig();
-      expected.setPredefinedKeys(Set.of("lang", "java.jdbc"));
+      expected.setPredefinedKeys(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript"))
+      ));
 
       JsonMockHttpRequest request = JsonMockHttpRequest
         .put(namespaceConfigPath)
         .contentType(MediaType.APPLICATION_JSON)
-        .json("{ 'predefinedKeys': ['lang', 'java.jdbc'] }");
+        .json("{ 'predefinedKeys': { 'lang': { 'validationEnabled': true, 'allowedValues': ['Java', 'TypeScript'] } } }");
       JsonMockHttpResponse response = new JsonMockHttpResponse();
       dispatcher.invoke(request, response);
 
@@ -194,7 +208,9 @@ class ConfigResourceTest {
       GlobalConfig expected = new GlobalConfig();
       expected.setEnabled(true);
       expected.setEnableNamespaceConfig(false);
-      expected.setPredefinedKeys(Set.of("lang"));
+      expected.setPredefinedKeys(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript"))
+      ));
 
       when(configService.getGlobalConfig()).thenReturn(expected);
       MockHttpRequest request = MockHttpRequest.get(globalConfigPath);
@@ -205,6 +221,10 @@ class ConfigResourceTest {
       JsonNode responseBody = response.getContentAsJson();
       assertThat(responseBody.get("enabled").asBoolean()).isTrue();
       assertThat(responseBody.get("enableNamespaceConfig").asBoolean()).isFalse();
+
+      assertThat(responseBody.get("predefinedKeys").get("lang").get("allowedValues").get(0).asText()).isEqualTo("Java");
+      assertThat(responseBody.get("predefinedKeys").get("lang").get("allowedValues").get(1).asText()).isEqualTo("TypeScript");
+
       assertThat(responseBody.get("_links").get("update").get("href").asText()).isEqualTo(expectedLink);
       assertThat(responseBody.get("_links").get("self").get("href").asText()).isEqualTo(expectedLink);
     }
@@ -214,22 +234,19 @@ class ConfigResourceTest {
       JsonMockHttpRequest request = JsonMockHttpRequest
         .put(globalConfigPath)
         .contentType(MediaType.APPLICATION_JSON)
-        .json("{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': [] }");
+        .json("{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': {} }");
       JsonMockHttpResponse response = new JsonMockHttpResponse();
       dispatcher.invoke(request, response);
 
       assertThat(response.getStatus()).isEqualTo(403);
     }
 
-
     @ParameterizedTest
     @ValueSource(
       strings = {
-        "",
         ", 'predefinedKeys': null",
-        ", 'predefinedKeys': [ null ]",
-        ", 'predefinedKeys': [ '' ]",
-        ", 'predefinedKeys': [ 'Ungültiger/Schlüssel' ]"
+        ", 'predefinedKeys': { '': {'validationEnabled': false, 'allowedValues': [] } }",
+        ", 'predefinedKeys': { 'Ungültiger/Schlüssel': {'validationEnabled': false, 'allowedValues': [] } }"
       }
     )
     void shouldReturnBadRequestBecausePredefinedKeysAreMalformed(String predefinedKeys) throws URISyntaxException {
@@ -250,7 +267,7 @@ class ConfigResourceTest {
         .put(globalConfigPath)
         .contentType(MediaType.APPLICATION_JSON)
         .json(String.format(
-          "{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': ['%s'] }",
+          "{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': {'%s': {'validationEnabled': false, 'allowedValues': []}} }",
           "a".repeat(256)
         ));
       JsonMockHttpResponse response = new JsonMockHttpResponse();
@@ -265,12 +282,14 @@ class ConfigResourceTest {
       GlobalConfig expected = new GlobalConfig();
       expected.setEnabled(false);
       expected.setEnableNamespaceConfig(false);
-      expected.setPredefinedKeys(Set.of("lang", "java.jdbc"));
+      expected.setPredefinedKeys(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript"))
+      ));
 
       JsonMockHttpRequest request = JsonMockHttpRequest
         .put(globalConfigPath)
         .contentType(MediaType.APPLICATION_JSON)
-        .json("{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': ['lang', 'java.jdbc'] }");
+        .json("{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': {'lang': {'validationEnabled': true, 'allowedValues': ['Java', 'TypeScript']} } }");
       JsonMockHttpResponse response = new JsonMockHttpResponse();
       dispatcher.invoke(request, response);
 

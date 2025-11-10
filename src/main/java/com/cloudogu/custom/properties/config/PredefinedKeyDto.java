@@ -16,19 +16,21 @@
 
 package com.cloudogu.custom.properties.config;
 
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
+import de.otto.edison.hal.HalRepresentation;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
+@EqualsAndHashCode(callSuper = false)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@XmlAccessorType(XmlAccessType.FIELD)
-public abstract class BaseConfig {
-  private Map<String, PredefinedKey> predefinedKeys = new HashMap<>();
+public class PredefinedKeyDto extends HalRepresentation {
+
+  @NotNull
+  private List<String> allowedValues;
 }

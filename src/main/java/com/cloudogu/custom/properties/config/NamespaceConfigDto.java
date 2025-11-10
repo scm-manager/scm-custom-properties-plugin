@@ -22,13 +22,13 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.util.Set;
+import java.util.Map;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
 public class NamespaceConfigDto extends BaseConfigDto {
-  private Set<String> globallyPredefinedKeys;
+  private Map<String, PredefinedKeyDto> globallyPredefinedKeys;
 
   @Override
   protected HalRepresentation add(Links links) {

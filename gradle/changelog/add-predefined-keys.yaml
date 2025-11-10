@@ -1,2 +1,4 @@
 - type: added
   description: Users can now predefine keys within the global and namespace config, which get suggested when adding / editing a custom property of a repository
+- type: added
+  description: Users can now define a range of allowed values for predefined keys

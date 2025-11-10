@@ -23,7 +23,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.util.Set;
+import java.util.Map;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -36,7 +36,7 @@ public class GlobalConfig extends BaseConfig {
 
   public GlobalConfig(boolean enabled,
                       boolean enableNamespaceConfig,
-                      Set<String> predefinedKeys) {
+                      Map<String, PredefinedKey> predefinedKeys) {
     super(predefinedKeys);
     this.enabled = enabled;
     this.enableNamespaceConfig = enableNamespaceConfig;

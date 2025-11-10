@@ -16,7 +16,7 @@
 
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { Repository } from "@scm-manager/ui-types";
-import { Form, Subtitle } from "@scm-manager/ui-core";
+import { Form, Subtitle, useDocumentTitleForRepository } from "@scm-manager/ui-core";
 import { CustomProperty } from "../types";
 import { useTranslation } from "react-i18next";
 import { useHistory, useLocation } from "react-router";
@@ -49,6 +49,11 @@ type Props = {
 const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
   const [t] = useTranslation("plugins");
   const history = useHistory();
+  useDocumentTitleForRepository(
+    repository,
+    t("scm-custom-properties-plugin.repository.subtitle"),
+    t("scm-custom-properties-plugin.config.edit"),
+  );
   const [initialState, setInitialState] = useState<CustomProperty>({ key: "", value: "", _links: {} });
 
   const location = useLocation();
@@ -71,6 +76,13 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
     }
   };
 
+  const valueValidator = useCallback(
+    (key: string, value: string) => {
+      return data?.[key]?.allowedValues.includes(value);
+    },
+    [data],
+  );
+
   const getCustomPropertyByKey = useCallback(
     (key: string) => {
       return (repository._embedded?.customProperties as { properties: CustomProperty[] }).properties.find(
@@ -79,6 +91,18 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
     },
     [repository._embedded?.customProperties],
   );
+
+  const transformPredefinedKeysToOptions = useCallback(() => {
+    const result = Object.keys(data || {}).map((key) => {
+      return { label: key, value: key };
+    });
+
+    if (filter !== "" && !result.some((option) => option.value === filter)) {
+      result.unshift({ label: filter, value: filter });
+    }
+
+    return result;
+  }, [data, filter]);
 
   const onSubmit = async (customProperty: CustomProperty) => {
     if (isEditMode()) {
@@ -104,7 +128,7 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
       onSubmit={onSubmit}
       defaultValues={initialState}
     >
-      {({ getFieldState }) => (
+      {({ getFieldState, watch }) => (
         <>
           <Subtitle>
             {isEditMode()
@@ -114,7 +138,7 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
           <Form.Row>
             <StyledCombobox
               name="key"
-              options={data}
+              options={transformPredefinedKeysToOptions}
               onQueryChange={setFilter}
               rules={{ required: true, validate: keyValidator }}
               className={"is-info"}
@@ -126,9 +150,30 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
               <FieldErrorMessage>{getFieldState("key").error?.message}</FieldErrorMessage>
             ) : null}
           </Form.Row>
-          <Form.Row>
-            <Form.Input name="value" rules={{ required: true }} />
-          </Form.Row>
+          {data?.[watch("key")] && data[watch("key")].allowedValues.length > 0 ? (
+            <>
+              <Form.Row>
+                <p className="pl-4">{t("scm-custom-properties-plugin.editor.predefinedValuesNote")}</p>
+              </Form.Row>
+              <Form.Row>
+                <Form.Select
+                  name="value"
+                  rules={{ required: true, validate: (value: string) => valueValidator(watch("key"), value) }}
+                >
+                  <option value={""}></option>
+                  {data[watch("key")].allowedValues.map((value) => (
+                    <option value={value} key={value}>
+                      {value}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Row>
+            </>
+          ) : (
+            <Form.Row>
+              <Form.Input name="value" rules={{ required: true }} />
+            </Form.Row>
+          )}
         </>
       )}
     </Form>

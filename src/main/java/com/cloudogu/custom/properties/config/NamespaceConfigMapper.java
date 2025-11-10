@@ -30,8 +30,6 @@ import sonia.scm.api.v2.resources.LinkBuilder;
 import sonia.scm.api.v2.resources.ScmPathInfoStore;
 import sonia.scm.repository.NamespacePermissions;
 
-import java.util.TreeSet;
-
 import static de.otto.edison.hal.Links.linkingTo;
 
 @Mapper
@@ -40,9 +38,17 @@ public abstract class NamespaceConfigMapper {
   @Inject
   private ScmPathInfoStore scmPathInfoStore;
 
+  @Inject
+  private PredefinedKeyMapper predefinedKeyMapper;
+
   @VisibleForTesting
   void setScmPathInfoStore(ScmPathInfoStore scmPathInfoStore) {
     this.scmPathInfoStore = scmPathInfoStore;
+  }
+
+  @VisibleForTesting
+  void setPredefinedKeyMapper(PredefinedKeyMapper predefinedKeyMapper) {
+    this.predefinedKeyMapper = predefinedKeyMapper;
   }
 
   @Mapping(target = "globallyPredefinedKeys", ignore = true)
@@ -52,8 +58,7 @@ public abstract class NamespaceConfigMapper {
 
   @AfterMapping
   public void appendLinks(@MappingTarget NamespaceConfigDto target, @Context GlobalConfig globalConfig, @Context String namespace) {
-    target.setGloballyPredefinedKeys(new TreeSet<>(globalConfig.getPredefinedKeys()));
-    target.setPredefinedKeys(new TreeSet<>(target.getPredefinedKeys()));
+    target.setGloballyPredefinedKeys(predefinedKeyMapper.mapAll(globalConfig.getPredefinedKeys()));
 
     Links.Builder linksBuilder = linkingTo();
 
@@ -64,6 +69,7 @@ public abstract class NamespaceConfigMapper {
 
     target.add(linksBuilder.build());
   }
+
 
   private String self(String namespace) {
     LinkBuilder linkBuilder = new LinkBuilder(scmPathInfoStore.get(), ConfigResource.class);

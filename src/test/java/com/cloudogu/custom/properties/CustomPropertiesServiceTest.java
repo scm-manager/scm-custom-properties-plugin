@@ -17,6 +17,7 @@
 package com.cloudogu.custom.properties;
 
 import com.cloudogu.custom.properties.config.ConfigService;
+import com.cloudogu.custom.properties.config.PredefinedKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -34,11 +35,13 @@ import sonia.scm.store.DataStore;
 import sonia.scm.store.InMemoryByteConfigurationEntryStoreFactory;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -46,12 +49,11 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class CustomPropertiesServiceTest {
 
+  private final Repository repository = RepositoryTestData.createHeartOfGold();
   @Mock
   ScmEventBus eventBus;
   @Captor
   ArgumentCaptor<Object> eventCaptor;
-
-  private final Repository repository = RepositoryTestData.createHeartOfGold();
   private DataStore<CustomProperty> store;
   @Mock
   private ConfigService configService;
@@ -74,50 +76,75 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldReturnNoKeysBecauseNoKeysWerePredefined() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Set.of());
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of());
 
-      Collection<String> result = customPropertiesService.getFilteredPredefinedKeys(repository, "");
+      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(repository, "");
       assertThat(result).isEmpty();
     }
 
     @Test
     void shouldReturnNoKeysBecauseFilterDoesNotMatchAnyKeys() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Set.of("lang", "java.jdbc"));
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript"))
+      ));
 
-      Collection<String> result = customPropertiesService.getFilteredPredefinedKeys(repository, "Some complete nonsense");
+      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(repository, "Some complete nonsense");
       assertThat(result).isEmpty();
     }
 
     @Test
     void shouldReturnAllPredefinedKeysBecauseFilterIsEmpty() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Set.of("lang", "java.jdbc"));
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript")),
+        "arbitrary", new PredefinedKey(List.of())
+      ));
 
-      Collection<String> result = customPropertiesService.getFilteredPredefinedKeys(repository, "");
-      assertThat(result).containsOnly("lang", "java.jdbc");
+      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(repository, "");
+      assertThat(result).containsOnly(
+        entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
+        entry("arbitrary", new PredefinedKey(List.of()))
+      );
     }
 
     @Test
     void shouldReturnAllPredefinedKeysBecauseFilterIsNull() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Set.of("lang", "java.jdbc"));
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript")),
+        "arbitrary", new PredefinedKey(List.of())
+      ));
 
-      Collection<String> result = customPropertiesService.getFilteredPredefinedKeys(repository, null);
-      assertThat(result).containsOnly("lang", "java.jdbc");
+      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(repository, null);
+      assertThat(result).containsOnly(
+        entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
+        entry("arbitrary", new PredefinedKey(List.of()))
+      );
     }
 
     @Test
     void shouldReturnAllPredefinedKeysThatMatchTheFilter() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Set.of("lang", "java.jdbc"));
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript")),
+        "arbitrary", new PredefinedKey(List.of())
+      ));
 
-      Collection<String> result = customPropertiesService.getFilteredPredefinedKeys(repository, "lan");
-      assertThat(result).containsOnly("lang");
+      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(repository, "lan");
+      assertThat(result).containsOnly(
+        entry("lang", new PredefinedKey(List.of("Java", "TypeScript")))
+      );
     }
 
     @Test
     void shouldApplyFilterCaseInsensitive() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Set.of("lang", "LANG"));
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript")),
+        "LANG", new PredefinedKey(List.of())
+      ));
 
-      Collection<String> result = customPropertiesService.getFilteredPredefinedKeys(repository, "lAn");
-      assertThat(result).containsOnly("lang", "LANG");
+      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(repository, "lAn");
+      assertThat(result).containsOnly(
+        entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
+        entry("LANG", new PredefinedKey(List.of()))
+      );
     }
   }
 
@@ -154,12 +181,55 @@ class CustomPropertiesServiceTest {
     }
 
     @Test
-    void shouldCreateNewCustomProperty() {
-      store.put("key2", new CustomProperty("key2", "value2"));
+    void shouldThrowBadRequestBecauseValueIsInvalid() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+        "key1", new PredefinedKey(List.of("allowedValue"))
+      ));
+
+      assertThatThrownBy(() -> customPropertiesService.create(repository, new CustomProperty("key1", "disallowedValue")))
+        .isInstanceOf(InvalidValueException.class);
+    }
+
+    @Test
+    void shouldCreateNewCustomPropertyWithoutPredefinedKey() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of());
+
       customPropertiesService.create(repository, new CustomProperty("key1", "value1"));
 
       assertThat(store.get("key1")).isEqualTo(new CustomProperty("key1", "value1"));
-      assertThat(store.get("key2")).isEqualTo(new CustomProperty("key2", "value2"));
+
+      CustomPropertyCreateEvent event = (CustomPropertyCreateEvent) eventCaptor.getValue();
+      assertThat(event).isInstanceOf(CustomPropertyCreateEvent.class);
+      assertThat(event.getProperty()).isEqualTo(new CustomProperty("key1", "value1"));
+      assertThat(event.getRepository()).isEqualTo(repository);
+    }
+
+
+    @Test
+    void shouldCreateNewCustomPropertyWithValidationDisabled() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+        "key1", new PredefinedKey(List.of())
+      ));
+
+      customPropertiesService.create(repository, new CustomProperty("key1", "value1"));
+
+      assertThat(store.get("key1")).isEqualTo(new CustomProperty("key1", "value1"));
+
+      CustomPropertyCreateEvent event = (CustomPropertyCreateEvent) eventCaptor.getValue();
+      assertThat(event).isInstanceOf(CustomPropertyCreateEvent.class);
+      assertThat(event.getProperty()).isEqualTo(new CustomProperty("key1", "value1"));
+      assertThat(event.getRepository()).isEqualTo(repository);
+    }
+
+    @Test
+    void shouldCreateNewCustomPropertyWithValidatedValue() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+        "key1", new PredefinedKey(List.of("value1"))
+      ));
+
+      customPropertiesService.create(repository, new CustomProperty("key1", "value1"));
+
+      assertThat(store.get("key1")).isEqualTo(new CustomProperty("key1", "value1"));
 
       CustomPropertyCreateEvent event = (CustomPropertyCreateEvent) eventCaptor.getValue();
       assertThat(event).isInstanceOf(CustomPropertyCreateEvent.class);
@@ -176,6 +246,16 @@ class CustomPropertiesServiceTest {
       assertThatThrownBy(() -> customPropertiesService.update(
         repository, "key1", new CustomProperty("key1", "otherValue")
       )).isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowBadRequestBecauseValueIsInvalid() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+        "key1", new PredefinedKey(List.of("allowedValue"))
+      ));
+
+      assertThatThrownBy(() -> customPropertiesService.create(repository, new CustomProperty("key1", "disallowedValue")))
+        .isInstanceOf(InvalidValueException.class);
     }
 
     @Test

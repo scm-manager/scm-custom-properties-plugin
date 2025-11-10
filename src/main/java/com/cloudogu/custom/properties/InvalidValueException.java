@@ -14,21 +14,23 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-package com.cloudogu.custom.properties.config;
+package com.cloudogu.custom.properties;
 
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import sonia.scm.BadRequestException;
+import sonia.scm.ContextEntry;
+import sonia.scm.repository.Repository;
 
-import java.util.HashMap;
-import java.util.Map;
+public class InvalidValueException extends BadRequestException {
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@XmlAccessorType(XmlAccessType.FIELD)
-public abstract class BaseConfig {
-  private Map<String, PredefinedKey> predefinedKeys = new HashMap<>();
+  public InvalidValueException(Repository repository, CustomProperty entity) {
+    super(
+      ContextEntry.ContextBuilder.entity("custom-property", entity.getKey()).in(repository).build(),
+      String.format("'%s' is not an allowed value for the predefined key '%s'", entity.getValue(), entity.getKey())
+    );
+  }
+
+  @Override
+  public String getCode() {
+    return "3q5Pm3kktO";
+  }
 }

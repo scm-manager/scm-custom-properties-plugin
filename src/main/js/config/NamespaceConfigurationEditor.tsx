@@ -18,11 +18,14 @@ import React, { FC } from "react";
 import ConfigEditor from "./ConfigEditor";
 import { useConfigLink } from "@scm-manager/ui-api";
 import { NamespaceConfig } from "../types";
-import { ErrorNotification, Loading } from "@scm-manager/ui-core";
+import { ErrorNotification, Loading, useDocumentTitle } from "@scm-manager/ui-core";
 import { Namespace } from "@scm-manager/ui-types";
+import { useTranslation } from "react-i18next";
 
 const NamespaceConfigurationEditor: FC<{ link: string; namespace: Namespace }> = ({ link, namespace }) => {
+  const [t] = useTranslation("plugins");
   const { isLoading, error, initialConfiguration: config, update } = useConfigLink<NamespaceConfig>(link);
+  useDocumentTitle(t("scm-custom-properties-plugin.config.title"), t("scm-custom-properties-plugin.config.edit"));
   const baseUrl = `/namespace/${namespace.namespace}/settings/custom-properties`;
 
   if (isLoading) {

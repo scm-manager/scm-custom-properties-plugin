@@ -17,6 +17,7 @@
 package com.cloudogu.custom.properties;
 
 import com.cloudogu.custom.properties.config.ConfigService;
+import com.cloudogu.custom.properties.config.PredefinedKey;
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import sonia.scm.ContextEntry;
@@ -27,7 +28,9 @@ import sonia.scm.store.ConfigurationEntryStoreFactory;
 import sonia.scm.store.DataStore;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static sonia.scm.AlreadyExistsException.alreadyExists;
 import static sonia.scm.NotFoundException.notFound;
@@ -51,33 +54,42 @@ public class CustomPropertiesService {
     return store.getAll().values().stream().sorted().toList();
   }
 
-  Collection<String> getFilteredPredefinedKeys(Repository repository, String filter) {
-    Collection<String> predefinedKeys = configService.getAllPredefinedKeys(repository);
+  Map<String, PredefinedKey> getFilteredPredefinedKeys(Repository repository, String filter) {
+    Map<String, PredefinedKey> predefinedKeys = configService.getAllPredefinedKeys(repository);
 
     if (filter == null || filter.isEmpty()) {
       return predefinedKeys;
     }
 
     String lowerCasedFilter = filter.toLowerCase();
-    return predefinedKeys.stream()
-      .filter(key -> key.toLowerCase().contains(lowerCasedFilter))
-      .toList();
+    return predefinedKeys.entrySet().stream()
+      .filter(entry -> entry.getKey().toLowerCase().contains(lowerCasedFilter))
+      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   void create(Repository repository, CustomProperty entity) {
     log.trace("Creating custom property {} on {}", entity, repository);
+    validateValue(repository, entity);
     DataStore<CustomProperty> store = createStore(repository);
     Optional<CustomProperty> entityInDb = store.getOptional(entity.getKey());
     if (entityInDb.isPresent()) {
       throw alreadyExists(ContextEntry.ContextBuilder.entity("custom-property", entity.getKey()).in(repository));
-    } else {
-      store.put(entity.getKey(), entity);
-      eventBus.post(new CustomPropertyCreateEvent(repository, entity));
+    }
+
+    store.put(entity.getKey(), entity);
+    eventBus.post(new CustomPropertyCreateEvent(repository, entity));
+  }
+
+  private void validateValue(Repository repository, CustomProperty entity) {
+    PredefinedKey predefinedKey = configService.getAllPredefinedKeys(repository).get(entity.getKey());
+    if (predefinedKey != null && !predefinedKey.isValueValid(entity.getValue())) {
+      throw new InvalidValueException(repository, entity);
     }
   }
 
   void update(Repository repository, String currentKey, CustomProperty updatedEntity) {
     log.trace("Updating custom property {} to {} on {}", currentKey, updatedEntity, repository);
+    validateValue(repository, updatedEntity);
     boolean hasKeyChanged = !currentKey.equals(updatedEntity.getKey());
     if (hasKeyChanged) {
       replaceEntity(repository, currentKey, updatedEntity);

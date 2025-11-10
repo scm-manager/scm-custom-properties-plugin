@@ -21,6 +21,14 @@ This navigates the user to a new subpage.
 Here, the user can define a new key in a text input field.
 The same validation rules apply to predefined keys as when creating a custom property ([see documentation for overview](../overview)).
 
+Additionally, the user can use a chip input to define a set of values, which are allowed to
+be used for the custom properties with the corresponding key.
+New values have to be entered in the input field and then be confirmed by pressing the enter key.
+Existing values can be removed by pressing the small "x" symbol for the value.
+Properties already set for repositories will not be validated subsequently, when the configuration is changed.
+
+![Predefined values for a predefined key](./assets/predefined_values.png)
+
 The predefined keys can also be edited and deleted using the respective action buttons in the key overview.
 
 ![Definition of keys at the global level](./assets/predefined_keys_globally.png)

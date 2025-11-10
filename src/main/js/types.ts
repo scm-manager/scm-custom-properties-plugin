@@ -21,8 +21,14 @@ export type CustomProperty = {
   value: string;
 } & HalRepresentation;
 
+export type SinglePredefinedKey = {
+  allowedValues: string[];
+};
+
+export type PredefinedKeys = Record<string, SinglePredefinedKey>;
+
 export type BaseConfig = {
-  predefinedKeys: string[];
+  predefinedKeys: PredefinedKeys;
 } & HalRepresentation;
 
 export type GlobalConfig = {
@@ -31,5 +37,5 @@ export type GlobalConfig = {
 } & BaseConfig;
 
 export type NamespaceConfig = {
-  globallyPredefinedKeys: string[];
+  globallyPredefinedKeys: PredefinedKeys;
 } & BaseConfig;

@@ -28,14 +28,17 @@ Mit weiteren Benutzereingaben im Text-Input kann die Liste der vorgeschlagenen S
 Der Filter prüft dabei, ob die bisherigen Benutzereingaben in den Schlüsseln als Teil enthalten ist.
 Der Filter ignoriert dabei die Groß- und Kleinschreibung.
 
-Beim Anlegen der Property ist folgendes zu beachten: 
+Beim Anlegen der Property ist Folgendes zu beachten: 
 1. Der Schlüssel darf nicht länger als 255 Zeichen sein.
 2. Es dürfen nur Buchstaben, Ziffern, Punkte, Leerzeichen, Unterstriche, Slashes, Doppelpunkte, Bindestriche und @-Symbole verwendet werden.
 3. Jeder Schlüssel darf pro Repository nur einmal vergeben werden.
 
 Mehrere Werte für denselben Schlüssel müssen als eine Property angelegt werden. 
 Die einzelnen Werte werden mit einem Komma getrennt.
-Für den Wert selbst gibt es keine weiteren Begrenzungen oder Validierungsregeln.
+Für den Wert selbst gibt es keine weiteren Begrenzungen oder Validierungsregeln, es sei denn der verwendete Schlüssel ist ein vordefinierter Schlüssel zu dem bestimmte Werte vorgegeben worden ([siehe Dokumentation zur Konfiguration des Plugins](../config)).
+Falls dies der Fall ist, kann der Benutzer mithilfe eines Dropdowns einen der erlaubten Werte auswählen.
+
+![Anlegen einer Property mit vordefinierten Werten](./assets/custom_property_with_predefined_values.png)
 
 Für das Bearbeiten und Löschen von Properties gibt es in jeder Zeile einen eigenen Button, um den jeweiligen Vorgang zu starten.
 Das Bearbeiten einer Property erfolgt analog zum Erstellen eines Eintrags.

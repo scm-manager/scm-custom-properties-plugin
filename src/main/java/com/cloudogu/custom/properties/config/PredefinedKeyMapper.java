@@ -16,19 +16,21 @@
 
 package com.cloudogu.custom.properties.config;
 
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@XmlAccessorType(XmlAccessType.FIELD)
-public abstract class BaseConfig {
-  private Map<String, PredefinedKey> predefinedKeys = new HashMap<>();
+@Mapper
+public abstract class PredefinedKeyMapper {
+
+  @Mapping(target = "attributes", ignore = true)
+  public abstract PredefinedKeyDto map(PredefinedKey predefinedKey);
+
+  public Map<String, PredefinedKeyDto> mapAll(Map<String, PredefinedKey> predefinedKeys) {
+    return predefinedKeys.entrySet().stream()
+      .map(entry -> Map.entry(entry.getKey(), this.map(entry.getValue())))
+      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
 }
