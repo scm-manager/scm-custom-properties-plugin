@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 
 class ConfigServiceTest {
@@ -52,7 +53,8 @@ class ConfigServiceTest {
       globalConfig.setPredefinedKeys(
         Map.of(
           "lang", new PredefinedKey(List.of("Java", "TypeScript")),
-          "arbitrary", new PredefinedKey(List.of())
+          "arbitrary", new PredefinedKey(List.of()),
+          "default", new PredefinedKey(List.of(), "default")
         )
       );
 
@@ -63,7 +65,8 @@ class ConfigServiceTest {
       assertThat(result.isEnableNamespaceConfig()).isFalse();
       assertThat(result.getPredefinedKeys()).containsOnly(
         entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
-        entry("arbitrary", new PredefinedKey(List.of()))
+        entry("arbitrary", new PredefinedKey(List.of())),
+        entry("default", new PredefinedKey(List.of(), "default"))
       );
     }
 
@@ -73,6 +76,21 @@ class ConfigServiceTest {
       assertThat(result.isEnabled()).isTrue();
       assertThat(result.isEnableNamespaceConfig()).isTrue();
       assertThat(result.getPredefinedKeys()).isEmpty();
+    }
+
+    @Test
+    void shouldThrowBecauseDefaultValueIsNotAllowed() {
+      GlobalConfig globalConfig = new GlobalConfig();
+      globalConfig.setEnabled(false);
+      globalConfig.setEnableNamespaceConfig(false);
+      globalConfig.setPredefinedKeys(
+        Map.of(
+          "lang", new PredefinedKey(List.of("Java", "TypeScript"), "C++")
+        )
+      );
+
+      assertThatThrownBy(() -> configService.setGlobalConfig(globalConfig))
+        .isInstanceOf(InvalidDefaultValueException.class);
     }
   }
 
@@ -85,7 +103,8 @@ class ConfigServiceTest {
       namespaceConfig.setPredefinedKeys(
         Map.of(
           "lang", new PredefinedKey(List.of("Java", "TypeScript")),
-          "arbitrary", new PredefinedKey(List.of())
+          "arbitrary", new PredefinedKey(List.of()),
+          "default", new PredefinedKey(List.of(), "default")
         )
       );
 
@@ -94,7 +113,8 @@ class ConfigServiceTest {
 
       assertThat(result.getPredefinedKeys()).containsOnly(
         entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
-        entry("arbitrary", new PredefinedKey(List.of()))
+        entry("arbitrary", new PredefinedKey(List.of())),
+        entry("default", new PredefinedKey(List.of(), "default"))
       );
     }
 
@@ -103,6 +123,19 @@ class ConfigServiceTest {
       NamespaceConfig result = configService.getNamespaceConfig("Kanto");
 
       assertThat(result.getPredefinedKeys()).isEmpty();
+    }
+
+    @Test
+    void shouldThrowBecauseDefaultValueIsNotAllowed() {
+      NamespaceConfig namespaceConfig = new NamespaceConfig();
+      namespaceConfig.setPredefinedKeys(
+        Map.of(
+          "lang", new PredefinedKey(List.of("Java", "TypeScript"), "C++")
+        )
+      );
+
+      assertThatThrownBy(() -> configService.setNamespaceConfig("Kanto", namespaceConfig))
+        .isInstanceOf(InvalidDefaultValueException.class);
     }
   }
 

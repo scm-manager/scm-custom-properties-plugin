@@ -101,7 +101,8 @@ class ConfigResourceTest {
 
       NamespaceConfig expected = new NamespaceConfig();
       expected.setPredefinedKeys(Map.of(
-        "arbitrary", new PredefinedKey(List.of())
+        "arbitrary", new PredefinedKey(List.of()),
+        "default", new PredefinedKey(List.of(), "value")
       ));
       when(configService.getNamespaceConfig(namespace)).thenReturn(expected);
 
@@ -113,9 +114,14 @@ class ConfigResourceTest {
       JsonNode responseBody = response.getContentAsJson();
 
       assertThat(responseBody.get("predefinedKeys").get("arbitrary").get("allowedValues").size()).isZero();
+      assertThat(responseBody.get("predefinedKeys").get("arbitrary").get("defaultValue").asText()).isEmpty();
+
+      assertThat(responseBody.get("predefinedKeys").get("default").get("allowedValues").size()).isZero();
+      assertThat(responseBody.get("predefinedKeys").get("default").get("defaultValue").asText()).isEqualTo("value");
 
       assertThat(responseBody.get("globallyPredefinedKeys").get("lang").get("allowedValues").get(0).asText()).isEqualTo("Java");
       assertThat(responseBody.get("globallyPredefinedKeys").get("lang").get("allowedValues").get(1).asText()).isEqualTo("TypeScript");
+      assertThat(responseBody.get("globallyPredefinedKeys").get("lang").get("defaultValue").asText()).isEmpty();
 
       assertThat(responseBody.get("_links").get("update").get("href").asText()).isEqualTo(expectedLink);
       assertThat(responseBody.get("_links").get("self").get("href").asText()).isEqualTo(expectedLink);
@@ -138,8 +144,8 @@ class ConfigResourceTest {
       strings = {
         "{ }",
         "{ 'predefinedKeys': null }",
-        "{ 'predefinedKeys': { '': {'validationEnabled': false, 'allowedValues': [] } } }",
-        "{ 'predefinedKeys': { 'Ungültiger/Schlüssel': {'validationEnabled': false, 'allowedValues': [] } } }"
+        "{ 'predefinedKeys': { '': {'allowedValues': [] } } }",
+        "{ 'predefinedKeys': { 'Ungültiger/Schlüssel': {'allowedValues': [] } } }"
       }
     )
     void shouldReturnBadRequestBecausePredefinedKeysAreMalformed(String predefinedKeys) throws URISyntaxException {
@@ -160,7 +166,7 @@ class ConfigResourceTest {
         .put(namespaceConfigPath)
         .contentType(MediaType.APPLICATION_JSON)
         .json(String.format(
-          "{ 'predefinedKeys': { '%s': {'validationEnabled': false, 'allowedValues': [] } } }",
+          "{ 'predefinedKeys': { '%s': {'allowedValues': [] } } }",
           "a".repeat(256))
         );
       JsonMockHttpResponse response = new JsonMockHttpResponse();
@@ -180,7 +186,27 @@ class ConfigResourceTest {
       JsonMockHttpRequest request = JsonMockHttpRequest
         .put(namespaceConfigPath)
         .contentType(MediaType.APPLICATION_JSON)
-        .json("{ 'predefinedKeys': { 'lang': { 'validationEnabled': true, 'allowedValues': ['Java', 'TypeScript'] } } }");
+        .json("{ 'predefinedKeys': { 'lang': { 'allowedValues': ['Java', 'TypeScript'] } } }");
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(204);
+      verify(configService).setNamespaceConfig(namespace, expected);
+    }
+
+
+    @Test
+    @SubjectAware(permissions = {"namespace:customProperties:hitchhiker"})
+    void shouldSetNamespaceConfigurationWithDefaultValue() throws URISyntaxException {
+      NamespaceConfig expected = new NamespaceConfig();
+      expected.setPredefinedKeys(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript"), "Java")
+      ));
+
+      JsonMockHttpRequest request = JsonMockHttpRequest
+        .put(namespaceConfigPath)
+        .contentType(MediaType.APPLICATION_JSON)
+        .json("{ 'predefinedKeys': { 'lang': { 'allowedValues': ['Java', 'TypeScript'], 'defaultValue': 'Java' } } }");
       JsonMockHttpResponse response = new JsonMockHttpResponse();
       dispatcher.invoke(request, response);
 
@@ -209,7 +235,8 @@ class ConfigResourceTest {
       expected.setEnabled(true);
       expected.setEnableNamespaceConfig(false);
       expected.setPredefinedKeys(Map.of(
-        "lang", new PredefinedKey(List.of("Java", "TypeScript"))
+        "lang", new PredefinedKey(List.of("Java", "TypeScript")),
+        "default", new PredefinedKey(List.of(), "value")
       ));
 
       when(configService.getGlobalConfig()).thenReturn(expected);
@@ -224,6 +251,10 @@ class ConfigResourceTest {
 
       assertThat(responseBody.get("predefinedKeys").get("lang").get("allowedValues").get(0).asText()).isEqualTo("Java");
       assertThat(responseBody.get("predefinedKeys").get("lang").get("allowedValues").get(1).asText()).isEqualTo("TypeScript");
+      assertThat(responseBody.get("predefinedKeys").get("lang").get("defaultValue").asText()).isEmpty();
+
+      assertThat(responseBody.get("predefinedKeys").get("default").get("allowedValues").size()).isZero();
+      assertThat(responseBody.get("predefinedKeys").get("default").get("defaultValue").asText()).isEqualTo("value");
 
       assertThat(responseBody.get("_links").get("update").get("href").asText()).isEqualTo(expectedLink);
       assertThat(responseBody.get("_links").get("self").get("href").asText()).isEqualTo(expectedLink);
@@ -245,8 +276,8 @@ class ConfigResourceTest {
     @ValueSource(
       strings = {
         ", 'predefinedKeys': null",
-        ", 'predefinedKeys': { '': {'validationEnabled': false, 'allowedValues': [] } }",
-        ", 'predefinedKeys': { 'Ungültiger/Schlüssel': {'validationEnabled': false, 'allowedValues': [] } }"
+        ", 'predefinedKeys': { '': {'allowedValues': [] } }",
+        ", 'predefinedKeys': { 'Ungültiger/Schlüssel': {'allowedValues': [] } }"
       }
     )
     void shouldReturnBadRequestBecausePredefinedKeysAreMalformed(String predefinedKeys) throws URISyntaxException {
@@ -267,7 +298,7 @@ class ConfigResourceTest {
         .put(globalConfigPath)
         .contentType(MediaType.APPLICATION_JSON)
         .json(String.format(
-          "{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': {'%s': {'validationEnabled': false, 'allowedValues': []}} }",
+          "{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': {'%s': {'allowedValues': []}} }",
           "a".repeat(256)
         ));
       JsonMockHttpResponse response = new JsonMockHttpResponse();
@@ -289,7 +320,28 @@ class ConfigResourceTest {
       JsonMockHttpRequest request = JsonMockHttpRequest
         .put(globalConfigPath)
         .contentType(MediaType.APPLICATION_JSON)
-        .json("{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': {'lang': {'validationEnabled': true, 'allowedValues': ['Java', 'TypeScript']} } }");
+        .json("{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': {'lang': {'allowedValues': ['Java', 'TypeScript']} } }");
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(204);
+      verify(configService).setGlobalConfig(expected);
+    }
+
+    @Test
+    @SubjectAware(permissions = {"configuration:read,write:customProperties"})
+    void shouldSetGlobalConfigurationWithDefaultValue() throws URISyntaxException {
+      GlobalConfig expected = new GlobalConfig();
+      expected.setEnabled(false);
+      expected.setEnableNamespaceConfig(false);
+      expected.setPredefinedKeys(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "TypeScript"), "Java")
+      ));
+
+      JsonMockHttpRequest request = JsonMockHttpRequest
+        .put(globalConfigPath)
+        .contentType(MediaType.APPLICATION_JSON)
+        .json("{ 'enabled': false, 'enableNamespaceConfig': false, 'predefinedKeys': {'lang': {'allowedValues': ['Java', 'TypeScript'], 'defaultValue': 'Java' } } }");
       JsonMockHttpResponse response = new JsonMockHttpResponse();
       dispatcher.invoke(request, response);
 

@@ -28,6 +28,13 @@ Um einen Wert hinzuzufügen, muss dieser im Eingabefeld eingegeben und anschlie�
 bestätigt werden. Bestehende Werte können mit den kleinen "x"-Symbol neben dem Wert wieder aus der Liste entfernt werden.
 Bereits für Repositories gesetzte Properties werden bei einer Änderung der Konfiguration nicht nachträglich validiert.
 
+Des Weiteren kann der Benutzer einen Default-Wert für Custom Properties mit dem jeweiligen Schlüssel vorgeben.
+Falls ein Default-Wert definiert ist und für ein Repository kein Custom Property mit dem jeweiligen Schlüssel gesetzt ist, 
+gilt für dieses Repository implizit ein Custom Property mit dem Schlüssel und Default-Wert.
+Sollten die Werte für das Custom Property uneingeschränkt sein (wenn also keine erlaubten Werte gesetzt sind),
+erfolgt die Eingabe des Default-Werts mithilfe eines Text-Inputs.
+Sind erlaubte Werte vorgegeben, dann steht ein Dropdown mit allen erlaubten Werten und einer leeren Eingabe als Optionen zur Verfügung.
+
 ![Vordefinierte Werte zu einem vordefinierten Schlüssel](./assets/predefined_values.png)
 
 Die vordefinierten Schlüssel können auch in der Schlüsselübersicht mithilfe der jeweiligen Aktions-Buttons bearbeitet und gelöscht werden.

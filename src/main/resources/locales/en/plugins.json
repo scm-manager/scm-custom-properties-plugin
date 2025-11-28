@@ -5,6 +5,8 @@
       "title": "Custom Properties Configuration",
       "edit": "Edit",
       "general": {
+        "submit": "Submit",
+        "cancel": "Cancel",
         "enabled": {
           "title": "Plugin Enablement",
           "subtitle": "Should the Plugin be enabled?",
@@ -30,6 +32,9 @@
         "allowedValues": {
           "label": "Allowed values (optional)",
           "note": "Enter values, if you want to limit which values are allowed for this key."
+        },
+        "defaultValue": {
+          "label": "Default value (optional)"
         },
         "predefinedKeys": {
           "title": "Custom Properties",
@@ -73,11 +78,15 @@
       "subtitle_create": "Add new custom property",
       "subtitle_edit": "Edit custom property with key '{{key}}'",
       "predefinedValuesNote": "For this key, the possible values are predefined in the plugin configuration. Please choose one.",
+      "defaultValueTag": "Default Value",
       "key": {
         "label": "Key",
         "tooLong": "The maximum length of a key is 255 characters",
         "invalidChars": "Keys are only allowed to contain the following characters: Space a-z A-Z 0-9 _ . - : @ /",
         "alreadyExists": "The provided key already exists"
+      },
+      "defaultValue": {
+        "notIncluded": "The default value '{{defaultValue}}' is not included within the allowed values."
       },
       "submitSuccessCreate": "The custom property was successfully created",
       "value": {
@@ -90,7 +99,8 @@
         "value": "Value",
         "action": "Action",
         "setting": "Setting",
-        "allowedValues": "Allowed Values"
+        "allowedValues": "Allowed Values",
+        "defaultValue": "Default Value"
       },
       "body": {
         "edit": "Edit entry with the key {{key}}",
@@ -139,6 +149,10 @@
     "3q5Pm3kktO": {
       "displayName": "Invalid Value",
       "description": "The value for the key is invalid"
+    },
+    "CdayLPkk31": {
+      "displayName": "Invalid Default Value",
+      "description": "The default value is not allowed for this predefined key. Check the list of allowed values."
     }
   },
   "search": {

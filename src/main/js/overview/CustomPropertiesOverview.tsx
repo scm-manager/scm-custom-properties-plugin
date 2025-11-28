@@ -31,6 +31,7 @@ import { CustomProperty } from "../types";
 import { useDeleteCustomProperty } from "../hooks";
 import CenteredTableFooter from "../component/CenteredTableFooter";
 import MinWidthTableCell from "../component/MinWidthTableCell";
+import PropertyTag from "../component/PropertyTag";
 
 type CustomPropertyActionProps = {
   repository: Repository;
@@ -52,6 +53,17 @@ const CustomPropertyAction: FC<CustomPropertyActionProps> = ({ repository, custo
 
   return (
     <>
+      {customProperty.defaultProperty ? (
+        <span className="mr-4">
+          <LinkButton
+            className="px-2"
+            to={`${modifyUrl}?defaultProperty=${encodeURIComponent(customProperty.key)}`}
+            aria-label={t("scm-custom-properties-plugin.table.body.edit", { key: customProperty.key })}
+          >
+            <Icon>edit</Icon>
+          </LinkButton>
+        </span>
+      ) : null}
       {isEditAllowed ? (
         <span className="mr-4">
           <LinkButton
@@ -103,6 +115,9 @@ type CustomPropertiesTableProps = {
 const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({ repository, customProperties, modifyUrl }) => {
   const [t] = useTranslation("plugins");
   const isCreateAllowed = (repository._embedded?.customProperties as HalRepresentation)?._links?.create !== undefined;
+
+  const defaultValueTag = t("scm-custom-properties-plugin.editor.defaultValueTag");
+
   return (
     <table className="table">
       <thead>
@@ -118,7 +133,10 @@ const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({ repository, cus
           .map((property) => (
             <tr key={property.key}>
               <td>{property.key}</td>
-              <td>{property.value}</td>
+              <td>
+                {property.value}
+                {property.defaultProperty && <PropertyTag>{defaultValueTag}</PropertyTag>}
+              </td>
               <MinWidthTableCell>
                 <CustomPropertyAction repository={repository} customProperty={property} modifyUrl={modifyUrl} />
               </MinWidthTableCell>

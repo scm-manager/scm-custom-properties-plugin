@@ -31,8 +31,17 @@ import java.util.List;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class PredefinedKey {
   private List<String> allowedValues = new ArrayList<>();
+  private String defaultValue = "";
+
+  public PredefinedKey(List<String> allowedValues) {
+    this(allowedValues, "");
+  }
   
   public boolean isValueValid(String value) {
     return allowedValues.isEmpty() || allowedValues.contains(value);
+  }
+
+  public boolean isDefaultValueValid() {
+    return defaultValue.isEmpty() || isValueValid(defaultValue);
   }
 }

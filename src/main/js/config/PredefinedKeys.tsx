@@ -22,16 +22,13 @@ import CenteredTableFooter from "../component/CenteredTableFooter";
 import { LinkButton } from "@scm-manager/ui-core";
 import DeleteAction from "../component/DeleteAction";
 import MinWidthTableCell from "../component/MinWidthTableCell";
+import PropertyTag from "../component/PropertyTag";
 
 type PredefinedKeysProps<T extends BaseConfig> = {
   config: T;
   update: (config: T) => Promise<Response> | undefined;
   isLoading: boolean;
   editBaseUrl: string;
-};
-
-const Tag: FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <span className="tag is-outlined is-link is-rounded ml-2">{children}</span>;
 };
 
 const AllowedValuesColumn: FC<{ key: string; allowedValues: string[] }> = ({ key, allowedValues }) => {
@@ -59,6 +56,7 @@ const PredefinedKeys = <T extends BaseConfig>({ config, update, isLoading, editB
         <tr>
           <th>{t("scm-custom-properties-plugin.table.header.key")}</th>
           <th>{t("scm-custom-properties-plugin.table.header.allowedValues")}</th>
+          <th>{t("scm-custom-properties-plugin.table.header.defaultValue")}</th>
           <th>{t("scm-custom-properties-plugin.table.header.action")}</th>
         </tr>
       </thead>
@@ -69,11 +67,12 @@ const PredefinedKeys = <T extends BaseConfig>({ config, update, isLoading, editB
             <tr key={key}>
               <td>
                 {key}
-                <Tag>{globallyPredefinedTag}</Tag>
+                <PropertyTag>{globallyPredefinedTag}</PropertyTag>
               </td>
               <td>
                 <AllowedValuesColumn key={key} allowedValues={definition.allowedValues} />
               </td>
+              <td colSpan={2}>{definition.defaultValue}</td>
             </tr>
           ))}
         {Object.entries(config.predefinedKeys)
@@ -84,6 +83,7 @@ const PredefinedKeys = <T extends BaseConfig>({ config, update, isLoading, editB
               <td>
                 <AllowedValuesColumn key={key} allowedValues={definition.allowedValues} />
               </td>
+              <td>{definition.defaultValue}</td>
               <MinWidthTableCell>
                 <EditAction
                   editUrl={`${editBaseUrl}/predefinedKeys/${encodeURIComponent(key)}`}
@@ -96,7 +96,7 @@ const PredefinedKeys = <T extends BaseConfig>({ config, update, isLoading, editB
       </tbody>
       <CenteredTableFooter>
         <tr>
-          <td colSpan={2}>
+          <td colSpan={4}>
             <LinkButton to={`${editBaseUrl}/predefinedKeys`} variant="primary">
               {t("scm-custom-properties-plugin.table.footer.addKey")}
             </LinkButton>

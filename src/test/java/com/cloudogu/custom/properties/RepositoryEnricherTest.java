@@ -127,8 +127,8 @@ class RepositoryEnricherTest {
     when(context.oneRequireByType(Repository.class)).thenReturn(repository);
     when(customPropertiesService.get(repository)).thenReturn(
       List.of(
-        new CustomProperty("lang", "java"),
-        new CustomProperty("published", "true")
+        new CustomProperty("lang", "java", true),
+        new CustomProperty("published", "true", false)
       )
     );
 
@@ -137,8 +137,8 @@ class RepositoryEnricherTest {
     verify(appender).appendEmbedded(eq("customProperties"), captor.capture());
     RepositoryEnricher.CustomPropertyCollection embedded = captor.getValue();
     assertThat(embedded.getProperties()).isEqualTo(List.of(
-      new CustomPropertyDto("lang", "java"),
-      new CustomPropertyDto("published", "true")
+      new CustomPropertyDto("lang", "java", true),
+      new CustomPropertyDto("published", "true", false)
     ));
 
     Links expectedLinks = new Links.Builder()
@@ -156,20 +156,16 @@ class RepositoryEnricherTest {
     when(context.oneRequireByType(Repository.class)).thenReturn(repository);
     when(customPropertiesService.get(repository)).thenReturn(
       List.of(
-        new CustomProperty("lang", "java"),
-        new CustomProperty("published", "true")
+        new CustomProperty("lang", "java", true),
+        new CustomProperty("published", "true", false)
       )
     );
 
     enricher.enrich(context, appender);
 
-    CustomPropertyDto expectedLangDto = new CustomPropertyDto("lang", "java");
-    expectedLangDto.add(new Links.Builder()
-      .single(link("update", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle/lang"))
-      .single(link("delete", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle/lang"))
-      .build()
-    );
-    CustomPropertyDto expectedPublishedDto = new CustomPropertyDto("published", "true");
+    CustomPropertyDto expectedLangDto = new CustomPropertyDto("lang", "java", true);
+    expectedLangDto.add(new Links.Builder().build());
+    CustomPropertyDto expectedPublishedDto = new CustomPropertyDto("published", "true", false);
     expectedPublishedDto.add(new Links.Builder()
       .single(link("update", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle/published"))
       .single(link("delete", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle/published"))

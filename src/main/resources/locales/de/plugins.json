@@ -5,6 +5,8 @@
       "title": "Konfiguration für Custom Properties",
       "edit": "Bearbeitung",
       "general": {
+        "submit": "Speichern",
+        "cancel": "Abbrechen",
         "enabled": {
           "title": "Plugin Aktivierung",
           "subtitle": "Soll das Plugin aktiviert werden?",
@@ -30,6 +32,9 @@
         "allowedValues": {
           "label": "Erlaubte Werte (optional)",
           "note": "Tragen Sie hier Werte ein, falls Sie für den jeweiligen Schlüssel einschränken wollen, welche Werte erlaubt sind."
+        },
+        "defaultValue": {
+          "label": "Default-Wert (optional)"
         },
         "predefinedKeys": {
           "title": "Custom Properties",
@@ -73,11 +78,15 @@
       "subtitle_create": "Custom Property anlegen",
       "predefinedValuesNote": "Für diesen Schlüssel wurden in der Plugin-Konfiguration mögliche Werte vordefiniert. Wählen Sie einen aus.",
       "subtitle_edit": "Custom Property mit dem Schlüssel \"{{key}}\" bearbeiten",
+      "defaultValueTag": "Default-Wert",
       "key": {
         "label": "Schlüssel",
         "tooLong": "Der Schlüssel überschreitet die maximale Länge von 255 Zeichen",
         "invalidChars": "Für den Schlüssel sind nur folgende Zeichen erlaubt: Leerzeichen a-z A-Z 0-9 _ . - : @ /",
         "alreadyExists": "Der angegebene Schlüssel existiert bereits"
+      },
+      "defaultValue": {
+        "notIncluded": "Der Default-Wert '{{defaultValue}}' ist nicht in den erlaubten Werten enthalten"
       },
       "submitSuccessCreate": "Die Custom Property wurde erfolgreich erstellt",
       "value": {
@@ -90,7 +99,8 @@
         "value": "Wert",
         "action": "Aktion",
         "setting": "Einstellung",
-        "allowedValues": "Erlaubte Werte"
+        "allowedValues": "Erlaubte Werte",
+        "defaultValue": "Default-Wert"
       },
       "body": {
         "edit": "Eintrag mit dem Schlüssel {{key}} bearbeiten",
@@ -139,6 +149,10 @@
     "3q5Pm3kktO": {
       "displayName": "Ungültiger Wert",
       "description": "Für den eingetragenen Schlüssel wurde ein ungültiger Wert eingetragen"
+    },
+    "CdayLPkk31": {
+      "displayName": "Ungültiger Default-Wert",
+      "description": "Der eingetragene Default-Wert ist nicht erlaubt für diesen vordefinierten Schlüssel. Überprüfen Sie die Liste der erlaubten Werte."
     }
   },
   "search": {

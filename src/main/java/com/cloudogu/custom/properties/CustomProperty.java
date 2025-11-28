@@ -19,6 +19,7 @@ package com.cloudogu.custom.properties;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -33,6 +34,18 @@ import java.io.Serializable;
 public class CustomProperty implements Comparable<CustomProperty>, Serializable {
   private String key;
   private String value;
+
+  /*
+  * Ignoring this field for serialization
+  * Since every Custom Property that gets serialized will never be a default property
+  * Therefore isDefaultProperty will always be false anyway after deserialization
+  */
+  @XmlTransient
+  private boolean isDefaultProperty = false;
+
+  public CustomProperty(String key, String value) {
+    this(key, value, false);
+  }
 
   @Override
   public int compareTo(CustomProperty customProperty) {

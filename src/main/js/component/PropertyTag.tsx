@@ -14,24 +14,10 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-package com.cloudogu.custom.properties;
+import React, { FC } from "react";
 
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+const PropertyTag: FC<{ children: React.ReactNode }> = ({ children }) => {
+  return <span className="tag is-outlined is-link is-rounded ml-2">{children}</span>;
+};
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@EqualsAndHashCode(callSuper = true)
-public class CustomPropertyDto extends WriteCustomPropertyDto {
-  private boolean isDefaultProperty;
-
-  public CustomPropertyDto(String key, String value, boolean isDefaultProperty) {
-    super(key, value);
-    this.isDefaultProperty = isDefaultProperty;
-  }
-}
+export default PropertyTag;

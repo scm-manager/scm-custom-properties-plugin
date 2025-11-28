@@ -267,7 +267,27 @@ class CustomPropertiesResourceTest {
 
       assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
       assertThat(response.getContentAsString()).isEqualTo("""
-        [{"key":"hello","value":"world"}]""");
+        [{"key":"hello","value":"world","defaultProperty":false}]""");
+    }
+
+    @Test
+    @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
+    void shouldReturnSingleKeyValueEntryFromDefaultProperty() throws URISyntaxException, UnsupportedEncodingException {
+      GlobalConfig globalConfig = new GlobalConfig();
+      globalConfig.setPredefinedKeys(Map.of(
+        "hello", new PredefinedKey(List.of(), "world")
+      ));
+      configService.setGlobalConfig(globalConfig);
+
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      assertThat(response.getContentAsString()).isEqualTo("""
+        [{"key":"hello","value":"world","defaultProperty":true}]""");
     }
 
     @Test

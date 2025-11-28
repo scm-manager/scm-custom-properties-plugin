@@ -13,6 +13,8 @@ In dieser Übersicht ist es möglich, die bereits angelegten Properties zu betra
 Mit dem Button "Neuen Eintrag erstellen", welcher sich unterhalb der Tabelle befindet, 
 kann sich der Benutzer auf eine weitere Ansicht navigieren lassen, um neue Properties anzulegen.
 
+## Erstellung von Custom Properties
+
 ![Unausgefüllte Ansicht zum Erstellen einer neuen Custom Property](./assets/custom-properties-create.png)
 
 In dieser Ansicht kann mithilfe von zwei Text-Inputs der Schlüssel und der dazugehörige Wert definiert werden.
@@ -40,8 +42,18 @@ Falls dies der Fall ist, kann der Benutzer mithilfe eines Dropdowns einen der er
 
 ![Anlegen einer Property mit vordefinierten Werten](./assets/custom_property_with_predefined_values.png)
 
+## Bearbeiten und Löschen von Custom Properties
+
 Für das Bearbeiten und Löschen von Properties gibt es in jeder Zeile einen eigenen Button, um den jeweiligen Vorgang zu starten.
 Das Bearbeiten einer Property erfolgt analog zum Erstellen eines Eintrags.
 
 Für das Bearbeiten, Löschen und Erstellen von Properties ist es nötig, die Berechtigung für das Modifizieren der Repository-Metadaten zu haben.
 Sollte dem Benutzer diese Berechtigung fehlen, werden die entsprechenden Buttons nicht angezeigt.
+
+## Default Custom Properties
+
+![Tabelle der Custom Properties eines Repositorys mit default Custom Properties](./assets/default-custom-properties.png)
+
+Falls in der Konfiguration auf globaler oder Namespace-Ebene, Custom Properties mit einem Default-Wert definiert wurden,
+dann erscheinen diese als Default Custom Properties in den jeweiligen Repositories, solange Sie nicht explizit erstellt wurden.
+Default Custom Properties unterscheiden sich dadurch, dass der Wert mit einem "Default-Wert" Tag versehen sind und man diese nicht löschen kann.

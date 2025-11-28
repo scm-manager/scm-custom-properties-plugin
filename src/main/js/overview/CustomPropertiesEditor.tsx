@@ -58,18 +58,22 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
 
   const location = useLocation();
   const queryKey = urls.getValueStringFromLocationByKey(location, "key");
+  const queryDefaultProperty = urls.getValueStringFromLocationByKey(location, "defaultProperty");
 
   const { createCustomProperty } = useCreateCustomProperty(repository);
   const { editCustomProperty } = useEditCustomProperty(repository);
   const [filter, setFilter] = useState("");
   const { data } = useQueryPredefinedKeys(repository, filter);
 
-  const isEditMode = () => {
+  const isEditMode = useCallback(() => {
     return queryKey !== undefined && queryKey.length > 0;
-  };
+  }, [queryKey]);
 
   const keyValidator = (key: string) => {
-    const result = validateKey(key, queryKey, (key) => !!getCustomPropertyByKey(key));
+    const result = validateKey(key, queryKey, (key) => {
+      const customProperty = getCustomPropertyByKey(key);
+      return customProperty !== undefined && !customProperty.defaultProperty;
+    });
 
     if (result) {
       return t(`scm-custom-properties-plugin.editor.key.${result}`);
@@ -115,12 +119,14 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
   };
 
   useEffect(() => {
-    const customProperty = getCustomPropertyByKey(queryKey ?? "");
+    const customProperty = isEditMode()
+      ? getCustomPropertyByKey(queryKey ?? "")
+      : getCustomPropertyByKey(queryDefaultProperty ?? "");
 
     if (customProperty) {
-      setInitialState({ key: queryKey ?? "", value: customProperty.value, _links: customProperty._links });
+      setInitialState({ key: customProperty.key, value: customProperty.value, _links: customProperty._links });
     }
-  }, [getCustomPropertyByKey, queryKey]);
+  }, [getCustomPropertyByKey, isEditMode, queryDefaultProperty, queryKey]);
 
   return (
     <Form<CustomProperty>
@@ -160,7 +166,7 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
                   name="value"
                   rules={{ required: true, validate: (value: string) => valueValidator(watch("key"), value) }}
                 >
-                  <option value={""}></option>
+                  <option value=""></option>
                   {data[watch("key")].allowedValues.map((value) => (
                     <option value={value} key={value}>
                       {value}

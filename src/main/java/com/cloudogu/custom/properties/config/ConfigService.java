@@ -23,6 +23,7 @@ import sonia.scm.store.ConfigurationStoreFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class ConfigService {
 
@@ -46,6 +47,10 @@ public class ConfigService {
   }
 
   public void setGlobalConfig(GlobalConfig globalConfig) {
+    findInvalidDefaultValue(globalConfig.getPredefinedKeys()).ifPresent(entry -> {
+      throw new InvalidDefaultValueException(entry.getKey(), entry.getValue());
+    });
+
     globalConfigStore.set(globalConfig);
   }
 
@@ -54,7 +59,19 @@ public class ConfigService {
   }
 
   public void setNamespaceConfig(String namespace, NamespaceConfig namespaceConfig) {
+    findInvalidDefaultValue(namespaceConfig.getPredefinedKeys()).ifPresent(entry -> {
+      throw new InvalidDefaultValueException(namespace, entry.getKey(), entry.getValue());
+    });
+
     getNamespaceConfigStore(namespace).set(namespaceConfig);
+  }
+
+  private Optional<Map.Entry<String, PredefinedKey>> findInvalidDefaultValue(Map<String, PredefinedKey> predefinedKeys) {
+    return predefinedKeys
+      .entrySet()
+      .stream()
+      .filter(entry -> !entry.getValue().isDefaultValueValid())
+      .findFirst();
   }
 
   private ConfigurationStore<NamespaceConfig> getNamespaceConfigStore(String namespace) {

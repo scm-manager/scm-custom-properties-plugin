@@ -27,6 +27,12 @@ New values have to be entered in the input field and then be confirmed by pressi
 Existing values can be removed by pressing the small "x" symbol for the value.
 Properties already set for repositories will not be validated subsequently, when the configuration is changed.
 
+Furthermore, the user can specify a default value for custom properties with the respective key.
+If a default value has been specified and no custom property with the respective key has yet been created for a repository,
+the existence of a custom property with the respective key and the default value is assumed without explicitly creating it.
+If no allowed values for the custom property have been set, the default value is entered using a text input.
+If allowed values have been set, the user has a drop-down menu with all these values and an empty input as available options to choose from.
+
 ![Predefined values for a predefined key](./assets/predefined_values.png)
 
 The predefined keys can also be edited and deleted using the respective action buttons in the key overview.

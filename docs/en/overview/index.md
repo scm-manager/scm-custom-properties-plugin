@@ -13,6 +13,8 @@ In this overview it is possible to view, edit, and delete already created proper
 With the 'Add new custom property' button, which is located below the table,
 the user can navigate to another view to create a new property.
 
+## Creation of Custom Properties
+
 ![Unfilled view for creating a new custom property](./assets/custom-properties-create.png)
 
 In this view, the key and the corresponding value can be defined using two text inputs.
@@ -39,8 +41,18 @@ If this is the case, then the user can select one of the allowed values within a
 
 ![Creation of a custom property with predefined values](./assets/custom_property_with_predefined_values.png)
 
+## Editing and Deletion of Custom Properties
+
 For each custom property in the overview, there is a separate button for editing and deleting properties.
 A property is edited in a similar way as it is created.
 
 To edit, delete, and create properties, it is necessary to have the permission to modify the repository metadata.
 If the user does not have this permission, the corresponding buttons will not be displayed.
+
+## Default Custom Properties
+
+![Table of custom properties of a repository with default custom properties](./assets/default-custom-properties.png)
+
+If custom properties with a default value have been defined in the configuration at global or namespace level,
+then will those appear as default custom properties in the respective repositories, unless they have been explicitly created.
+Default custom properties differ in that the value is marked with a "Default Value" tag and cannot be deleted.

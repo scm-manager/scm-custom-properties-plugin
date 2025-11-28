@@ -24,7 +24,7 @@ import { useTranslation } from "react-i18next";
 
 const NamespaceConfigurationEditor: FC<{ link: string; namespace: Namespace }> = ({ link, namespace }) => {
   const [t] = useTranslation("plugins");
-  const { isLoading, error, initialConfiguration: config, update } = useConfigLink<NamespaceConfig>(link);
+  const { isLoading, error, initialConfiguration: config, update, isUpdating } = useConfigLink<NamespaceConfig>(link);
   useDocumentTitle(t("scm-custom-properties-plugin.config.title"), t("scm-custom-properties-plugin.config.edit"));
   const baseUrl = `/namespace/${namespace.namespace}/settings/custom-properties`;
 
@@ -40,7 +40,7 @@ const NamespaceConfigurationEditor: FC<{ link: string; namespace: Namespace }> =
     return null;
   }
 
-  return <ConfigEditor config={config} update={update} redirectUrl={baseUrl} />;
+  return <ConfigEditor config={config} update={update} redirectUrl={baseUrl} isUpdating={isUpdating} />;
 };
 
 export default NamespaceConfigurationEditor;

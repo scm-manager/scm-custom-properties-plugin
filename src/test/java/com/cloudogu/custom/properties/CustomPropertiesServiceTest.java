@@ -167,6 +167,70 @@ class CustomPropertiesServiceTest {
       assertThat(properties).hasSize(2);
       assertThat(properties).containsExactly(new CustomProperty("key1", "value1"), new CustomProperty("key2", "value2"));
     }
+
+    @Test
+    void shouldGetDefaultPropertyBecauseOfPredefinedKey() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(
+        Map.of(
+          "lang", new PredefinedKey(List.of(), "Java")
+        )
+      );
+      store.put("pending_release", new CustomProperty("pending_release", "true"));
+
+      Collection<CustomProperty> properties = customPropertiesService.get(repository);
+
+      assertThat(properties).containsExactly(
+        new CustomProperty("lang", "Java", true), new CustomProperty("pending_release", "true")
+      );
+    }
+
+    @Test
+    void shouldOverrideDefaultPropertyBecauseItsAlreadyDefinedAsProperty() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(
+        Map.of(
+          "lang", new PredefinedKey(List.of(), "Java")
+        )
+      );
+      store.put("lang", new CustomProperty("lang", "C++"));
+
+      Collection<CustomProperty> properties = customPropertiesService.get(repository);
+
+      assertThat(properties).containsExactly(
+        new CustomProperty("lang", "C++")
+      );
+    }
+
+    @Test
+    void shouldIgnoreDefaultPropertyBecauseDefaultValueIsEmpty() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(
+        Map.of(
+          "lang", new PredefinedKey(List.of(), "")
+        )
+      );
+      store.put("pending_release", new CustomProperty("pending_release", "true"));
+
+      Collection<CustomProperty> properties = customPropertiesService.get(repository);
+
+      assertThat(properties).containsExactly(
+        new CustomProperty("pending_release", "true")
+      );
+    }
+
+    @Test
+    void shouldIgnoreDefaultPropertyBecauseDefaultValueIsNull() {
+      when(configService.getAllPredefinedKeys(repository)).thenReturn(
+        Map.of(
+          "lang", new PredefinedKey(List.of(), null)
+        )
+      );
+      store.put("pending_release", new CustomProperty("pending_release", "true"));
+
+      Collection<CustomProperty> properties = customPropertiesService.get(repository);
+
+      assertThat(properties).containsExactly(
+        new CustomProperty("pending_release", "true")
+      );
+    }
   }
 
   @Nested

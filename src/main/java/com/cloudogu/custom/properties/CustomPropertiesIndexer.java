@@ -64,7 +64,9 @@ public class CustomPropertiesIndexer implements ServletContextListener {
 
   private static void indexRepository(Index<IndexedCustomProperty> index, CustomPropertiesService customPropertiesService, Repository repository) {
     for (CustomProperty customProperty : customPropertiesService.get(repository)) {
-      storeCustomProperty(index, repository, customProperty);
+      if (!customProperty.isDefaultProperty()) {
+        storeCustomProperty(index, repository, customProperty);
+      }
     }
   }
 

@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next";
 
 const GlobalConfigurationEditor: FC<{ link: string }> = ({ link }) => {
   const [t] = useTranslation("plugins");
-  const { isLoading, error, initialConfiguration: config, update } = useConfigLink<GlobalConfig>(link);
+  const { isLoading, error, initialConfiguration: config, update, isUpdating } = useConfigLink<GlobalConfig>(link);
   useDocumentTitle(t("scm-custom-properties-plugin.config.title"), t("scm-custom-properties-plugin.config.edit"));
   const baseUrl = "/admin/settings/custom-properties";
 
@@ -39,7 +39,7 @@ const GlobalConfigurationEditor: FC<{ link: string }> = ({ link }) => {
     return null;
   }
 
-  return <ConfigEditor config={config} update={update} redirectUrl={baseUrl} />;
+  return <ConfigEditor config={config} update={update} redirectUrl={baseUrl} isUpdating={isUpdating} />;
 };
 
 export default GlobalConfigurationEditor;

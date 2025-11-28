@@ -45,11 +45,11 @@ public abstract class CustomPropertyMapper {
     this.scmPathInfoStore = scmPathInfoStore;
   }
 
-  @Mapping(target = "links", ignore = true)
-  @Mapping(target = "embedded", ignore = true)
   @Mapping(target = "attributes", ignore = true)
   public abstract CustomPropertyDto map(CustomProperty customProperty, @Context Repository repository);
   public abstract CustomProperty map(CustomPropertyDto customPropertyDto);
+  @Mapping(target = "defaultProperty", ignore = true)
+  public abstract CustomProperty map(WriteCustomPropertyDto customPropertyDto);
 
   public Collection<CustomPropertyDto> mapToDtoCollection(Collection<CustomProperty> customProperties, Repository repository) {
     return customProperties.stream().map(customProperty -> this.map(customProperty, repository)).toList();
@@ -63,18 +63,22 @@ public abstract class CustomPropertyMapper {
 
     LinkBuilder linkBuilder = new LinkBuilder(scmPathInfoStore.get().get(), CustomPropertiesResource.class);
     Links.Builder links = new Links.Builder();
-    links.single(
-      link(
-        "update",
-        linkBuilder.method("update").parameters(repository.getNamespace(), repository.getName(), customPropertyDto.getKey()).href()
-      )
-    );
-    links.single(
-      link(
-        "delete",
-        linkBuilder.method("delete").parameters(repository.getNamespace(), repository.getName(), customPropertyDto.getKey()).href()
-      )
-    );
+
+    if (!customPropertyDto.isDefaultProperty()) {
+      links.single(
+        link(
+          "update",
+          linkBuilder.method("update").parameters(repository.getNamespace(), repository.getName(), customPropertyDto.getKey()).href()
+        )
+      );
+
+      links.single(
+        link(
+          "delete",
+          linkBuilder.method("delete").parameters(repository.getNamespace(), repository.getName(), customPropertyDto.getKey()).href()
+        )
+      );
+    }
 
     customPropertyDto.add(links.build());
   }

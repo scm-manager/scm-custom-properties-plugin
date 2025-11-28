@@ -33,4 +33,6 @@ public class PredefinedKeyDto extends HalRepresentation {
 
   @NotNull
   private List<String> allowedValues;
+
+  private String defaultValue = "";
 }

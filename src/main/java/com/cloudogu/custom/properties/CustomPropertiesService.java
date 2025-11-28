@@ -18,6 +18,7 @@ package com.cloudogu.custom.properties;
 
 import com.cloudogu.custom.properties.config.ConfigService;
 import com.cloudogu.custom.properties.config.PredefinedKey;
+import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import sonia.scm.ContextEntry;
@@ -31,6 +32,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static sonia.scm.AlreadyExistsException.alreadyExists;
 import static sonia.scm.NotFoundException.notFound;
@@ -50,8 +52,23 @@ public class CustomPropertiesService {
   }
 
   Collection<CustomProperty> get(Repository repository) {
-    DataStore<CustomProperty> store = createStore(repository);
-    return store.getAll().values().stream().sorted().toList();
+    Collection<CustomProperty> existingProperties = createStore(repository).getAll().values();
+    Stream<CustomProperty> defaultProperties = configService.getAllPredefinedKeys(repository)
+      .entrySet()
+      .stream()
+      .filter(entry -> isDefaultProperty(entry.getValue()))
+      .filter(entry -> isKeyUndefined(entry.getKey(), existingProperties))
+      .map(entry -> new CustomProperty(entry.getKey(), entry.getValue().getDefaultValue(), true));
+
+    return Stream.concat(existingProperties.stream(), defaultProperties).sorted().toList();
+  }
+
+  private boolean isDefaultProperty(PredefinedKey predefinedKey) {
+    return !Strings.isNullOrEmpty(predefinedKey.getDefaultValue());
+  }
+
+  private boolean isKeyUndefined(String key, Collection<CustomProperty> existingProperties) {
+    return existingProperties.stream().noneMatch(property -> property.getKey().equals(key));
   }
 
   Map<String, PredefinedKey> getFilteredPredefinedKeys(Repository repository, String filter) {

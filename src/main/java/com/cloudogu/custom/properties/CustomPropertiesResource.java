@@ -133,7 +133,7 @@ public class CustomPropertiesResource {
   @Consumes(PROPERTY_KEY_VALUE_MEDIA_TYPE)
   public void create(@PathParam("namespace") String namespace,
                          @PathParam("name") String name,
-                         @NotNull @Valid CustomPropertyDto contentDto) {
+                         @NotNull @Valid WriteCustomPropertyDto contentDto) {
     checkIsFeatureEnabled();
     Repository repository = tryToGetRepository(namespace, name);
     RepositoryPermissions.modify(repository).check();
@@ -197,7 +197,7 @@ public class CustomPropertiesResource {
   public void update(@PathParam("namespace") String namespace,
                          @PathParam("name") String name,
                          @PathParam("key") String key,
-                         @NotNull @Valid CustomPropertyDto replacementDto) {
+                         @NotNull @Valid WriteCustomPropertyDto replacementDto) {
     checkIsFeatureEnabled();
     Repository repository = tryToGetRepository(namespace, name);
     RepositoryPermissions.modify(repository).check();

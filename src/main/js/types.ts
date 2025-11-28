@@ -19,10 +19,12 @@ import { HalRepresentation } from "@scm-manager/ui-types";
 export type CustomProperty = {
   key: string;
   value: string;
+  defaultProperty?: boolean;
 } & HalRepresentation;
 
 export type SinglePredefinedKey = {
   allowedValues: string[];
+  defaultValue: string;
 };
 
 export type PredefinedKeys = Record<string, SinglePredefinedKey>;

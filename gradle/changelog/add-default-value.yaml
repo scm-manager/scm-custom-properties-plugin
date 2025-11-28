@@ -1,0 +1,2 @@
+- type: added
+  description: Default value for predefined keys, which are used for each repository, that does not define the key itself
