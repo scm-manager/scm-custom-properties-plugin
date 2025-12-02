@@ -31,7 +31,7 @@
         },
         "allowedValues": {
           "label": "Allowed values (optional)",
-          "note": "Enter values, if you want to limit which values are allowed for this key."
+          "note": "Enter values (confirm each value by using the enter key), if you want to limit which values are allowed for this key."
         },
         "defaultValue": {
           "label": "Default value (optional)"

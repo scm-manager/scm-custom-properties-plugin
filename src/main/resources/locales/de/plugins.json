@@ -31,7 +31,7 @@
         },
         "allowedValues": {
           "label": "Erlaubte Werte (optional)",
-          "note": "Tragen Sie hier Werte ein, falls Sie für den jeweiligen Schlüssel einschränken wollen, welche Werte erlaubt sind."
+          "note": "Tragen Sie hier Werte ein (jeweils mit Enter bestätigen), falls Sie für den jeweiligen Schlüssel einschränken wollen, welche Werte erlaubt sind."
         },
         "defaultValue": {
           "label": "Default-Wert (optional)"
