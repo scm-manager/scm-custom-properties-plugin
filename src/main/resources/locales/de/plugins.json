@@ -137,14 +137,6 @@
       }
     }
   },
-  "verbs": {
-    "repository": {
-      "customProperties": {
-        "displayName": "Konfiguration für Custom Properties ändern",
-        "description": "Darf die Konfiguration für Custom Properties verändern"
-      }
-    }
-  },
   "errors": {
     "3q5Pm3kktO": {
       "displayName": "Ungültiger Wert",

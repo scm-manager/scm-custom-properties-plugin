@@ -137,14 +137,6 @@
       }
     }
   },
-  "verbs": {
-    "repository": {
-      "customProperties": {
-        "displayName": "Modify configuration for custom properties",
-        "description": "May modify configuration for custom properties"
-      }
-    }
-  },
   "errors": {
     "3q5Pm3kktO": {
       "displayName": "Invalid Value",
