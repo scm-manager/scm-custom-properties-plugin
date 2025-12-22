@@ -15,6 +15,8 @@ This navigates the user to a subpage where the setting can be configured.
 
 ### Predefined Keys
 
+#### Creation of a Predefined Key
+
 To assist the user in creating custom properties, it is possible to create predefined keys.
 To create a new key, the 'Predefine Custom Property' button must be clicked.
 This navigates the user to a new subpage.
@@ -27,17 +29,35 @@ New values have to be entered in the input field and then be confirmed by pressi
 Existing values can be removed by pressing the small "x" symbol for the value.
 Properties already set for repositories will not be validated subsequently, when the configuration is changed.
 
-Furthermore, the user can specify a default value for custom properties with the respective key.
-If a default value has been specified and no custom property with the respective key has yet been created for a repository,
-the existence of a custom property with the respective key and the default value is assumed without explicitly creating it.
-If no allowed values for the custom property have been set, the default value is entered using a text input.
-If allowed values have been set, the user has a drop-down menu with all these values and an empty input as available options to choose from.
-
 ![Predefined values for a predefined key](./assets/predefined_values.png)
 
-The predefined keys can also be edited and deleted using the respective action buttons in the key overview.
+Finally, the user can use a radio input to specify a type for the custom property.
+There are three options for this:
+A plain property, a default property and a mandatory property.
+
+For mandatory properties, it is required that each repository has a custom property with the respective key and a value.
+
+For default properties, a default value is implicitly assumed if the respective custom property has not yet been defined for a repository.
+If default property is specified as the type, the user must also specify a default value.
+If the values for the custom property are unrestricted (i.e. if no permitted values are set),
+the default value is entered using a text input.
+If permitted values are specified, a drop-down menu with all permitted values and an empty input field is available as options.
+
+For plain properties no further rules will be applied.
+
+![Predefined Key with a default value](./assets/predefined_keys_default_value.png)
+
+#### Predefined Keys Overview
 
 ![Definition of keys at the global level](./assets/predefined_keys_globally.png)
+
+The predefined keys can also be edited and deleted using the respective action buttons in the key overview.
+The key overview also shows whether a default or mandatory value has been defined for the respective custom property.
+If the custom property has a mandatory value, icons are used to indicate whether all repositories have defined this mandatory property.
+If at least one repository is missing, the user receives a warning icon as feedback.
+This icon can be clicked to obtain an overview of all repositories for which the mandatory value still needs to be defined.
+
+![Overview of all repositories for which a mandatory property is missing](./assets/repos_with_missing_mandatory_properties.png)
 
 ## Namespace Configuration
 

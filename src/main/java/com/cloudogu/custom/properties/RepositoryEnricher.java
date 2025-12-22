@@ -76,6 +76,11 @@ public class RepositoryEnricher implements HalEnricher {
     appender.appendEmbedded("customProperties", collection);
 
     appender.appendLink("predefinedCustomPropertyKeys", createPredefinedKeysLink(repository));
+
+    MissingMandatoryPropertyCollection missingProperties = new MissingMandatoryPropertyCollection(
+      customPropertiesService.getMissingMandatoryPropertiesForRepository(repository)
+    );
+    appender.appendEmbedded("missingMandatoryProperties", missingProperties);
   }
 
   private String createPredefinedKeysLink(Repository repository) {
@@ -105,5 +110,12 @@ public class RepositoryEnricher implements HalEnricher {
       super(links);
       this.properties = properties;
     }
+  }
+
+  @Getter
+  @AllArgsConstructor
+  @VisibleForTesting
+  static class MissingMandatoryPropertyCollection extends HalRepresentation {
+    private final Collection<String> missing;
   }
 }

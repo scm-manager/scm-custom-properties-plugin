@@ -104,5 +104,10 @@ class NamespaceEnricherTest {
       "customPropertiesConfig",
       "https://scm-test.de/scm/api/v2/custom-properties/namespace-configuration/hitchhiker"
     );
+
+    verify(appender).appendLink(
+      "missingMandatoryProperties",
+      "https://scm-test.de/scm/api/v2/mandatory-properties/missing-properties/hitchhiker"
+    );
   }
 }

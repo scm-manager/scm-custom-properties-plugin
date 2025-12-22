@@ -21,6 +21,8 @@ public class CustomPropertiesContext {
   private CustomPropertiesContext() { }
 
   public static final String CUSTOM_PROPERTIES_V2_PATH = "v2/custom-properties";
+  public static final String MANDATORY_PROPERTIES_V2_PATH = "v2/mandatory-properties";
+  public static final String MISSING_MANDATORY_PROPERTIES_LINK_NAME = "missingMandatoryProperties";
   public static final String CONFIG_PERMISSION_NAME = "customProperties";
   public static final String CONFIG_LINK_NAME = "customPropertiesConfig";
 }

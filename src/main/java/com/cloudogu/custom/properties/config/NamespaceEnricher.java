@@ -17,6 +17,7 @@
 package com.cloudogu.custom.properties.config;
 
 import com.cloudogu.custom.properties.CustomPropertiesContext;
+import com.cloudogu.custom.properties.MandatoryPropertiesResource;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 import sonia.scm.api.v2.resources.Enrich;
@@ -54,10 +55,20 @@ public class NamespaceEnricher implements HalEnricher {
       return;
     }
 
-    LinkBuilder linkBuilder = new LinkBuilder(scmPathInfoStoreProvider.get().get(), ConfigResource.class);
     appender.appendLink(
       CustomPropertiesContext.CONFIG_LINK_NAME,
-      linkBuilder.method("getNamespaceConfig").parameters(namespace.getNamespace()).href()
+      new LinkBuilder(scmPathInfoStoreProvider.get().get(), ConfigResource.class)
+        .method("getNamespaceConfig")
+        .parameters(namespace.getNamespace())
+        .href()
+    );
+
+    appender.appendLink(
+      CustomPropertiesContext.MISSING_MANDATORY_PROPERTIES_LINK_NAME,
+      new LinkBuilder(scmPathInfoStoreProvider.get().get(), MandatoryPropertiesResource.class)
+        .method("readMissingMandatoryPropertiesFromNamespace")
+        .parameters(namespace.getNamespace())
+        .href()
     );
   }
 }

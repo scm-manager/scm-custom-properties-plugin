@@ -17,6 +17,7 @@
 package com.cloudogu.custom.properties.config;
 
 import com.cloudogu.custom.properties.CustomPropertiesContext;
+import com.cloudogu.custom.properties.MandatoryPropertiesResource;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 import sonia.scm.api.v2.resources.Enrich;
@@ -43,10 +44,14 @@ public class IndexLinkEnricher implements HalEnricher {
   @Override
   public void enrich(HalEnricherContext context, HalAppender appender) {
     if (ConfigurationPermissions.read(CustomPropertiesContext.CONFIG_PERMISSION_NAME).isPermitted()) {
-      LinkBuilder linkBuilder = new LinkBuilder(pathInfoStore.get().get(), ConfigResource.class);
       appender.appendLink(
         CustomPropertiesContext.CONFIG_LINK_NAME,
-        linkBuilder.method("getGlobalConfig").parameters().href()
+        new LinkBuilder(pathInfoStore.get().get(), ConfigResource.class).method("getGlobalConfig").parameters().href()
+      );
+
+      appender.appendLink(
+        CustomPropertiesContext.MISSING_MANDATORY_PROPERTIES_LINK_NAME,
+        new LinkBuilder(pathInfoStore.get().get(), MandatoryPropertiesResource.class).method("readMissingMandatoryProperties").parameters().href()
       );
     }
   }

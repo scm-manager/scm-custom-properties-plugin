@@ -20,11 +20,16 @@ export type CustomProperty = {
   key: string;
   value: string;
   defaultProperty?: boolean;
+  mandatory?: boolean;
 } & HalRepresentation;
+
+export const valueModes = ["NONE", "DEFAULT", "MANDATORY"] as const;
+export type ValueMode = (typeof valueModes)[number];
 
 export type SinglePredefinedKey = {
   allowedValues: string[];
   defaultValue: string;
+  mode: ValueMode;
 };
 
 export type PredefinedKeys = Record<string, SinglePredefinedKey>;

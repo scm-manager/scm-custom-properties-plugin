@@ -25,6 +25,7 @@ import { useCreateCustomProperty, useEditCustomProperty, useQueryPredefinedKeys 
 import { validateKey } from "../validation";
 import FieldErrorMessage from "../component/FieldErrorMessage";
 import styled from "styled-components";
+import PropertyTag from "../component/PropertyTag";
 
 const StyledCombobox = styled(Form.Combobox)<React.ComponentProps<typeof Form.Combobox> & { isError: boolean }>`
   & * input {
@@ -54,11 +55,17 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
     t("scm-custom-properties-plugin.repository.subtitle"),
     t("scm-custom-properties-plugin.config.edit"),
   );
-  const [initialState, setInitialState] = useState<CustomProperty>({ key: "", value: "", _links: {} });
 
   const location = useLocation();
   const queryKey = urls.getValueStringFromLocationByKey(location, "key");
   const queryDefaultProperty = urls.getValueStringFromLocationByKey(location, "defaultProperty");
+  const queryMissingProperty = urls.getValueStringFromLocationByKey(location, "missingProperty");
+
+  const [initialState, setInitialState] = useState<CustomProperty>({
+    key: queryMissingProperty ? queryMissingProperty : "",
+    value: "",
+    _links: {},
+  });
 
   const { createCustomProperty } = useCreateCustomProperty(repository);
   const { editCustomProperty } = useEditCustomProperty(repository);
@@ -137,9 +144,16 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
       {({ getFieldState, watch }) => (
         <>
           <Subtitle>
-            {isEditMode()
-              ? t("scm-custom-properties-plugin.editor.subtitle_edit", { key: queryKey })
-              : t("scm-custom-properties-plugin.editor.subtitle_create")}
+            {isEditMode() ? (
+              <div className="is-flex is-align-items-center">
+                {t("scm-custom-properties-plugin.editor.subtitle_edit", { key: queryKey })}
+                {queryKey && data?.[queryKey]?.mode === "MANDATORY" && (
+                  <PropertyTag>{t("scm-custom-properties-plugin.editor.mandatoryValueTag")}</PropertyTag>
+                )}
+              </div>
+            ) : (
+              t("scm-custom-properties-plugin.editor.subtitle_create")
+            )}
           </Subtitle>
           <Form.Row>
             <StyledCombobox
@@ -147,7 +161,7 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
               options={transformPredefinedKeysToOptions}
               onQueryChange={setFilter}
               rules={{ required: true, validate: keyValidator }}
-              className={"is-info"}
+              className="is-info"
               isError={!!getFieldState("key").error}
             />
           </Form.Row>

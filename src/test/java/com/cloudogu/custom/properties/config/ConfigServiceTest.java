@@ -19,8 +19,6 @@ package com.cloudogu.custom.properties.config;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import sonia.scm.repository.Repository;
-import sonia.scm.repository.RepositoryTestData;
 import sonia.scm.store.ConfigurationStoreFactory;
 import sonia.scm.store.InMemoryByteConfigurationStoreFactory;
 
@@ -33,7 +31,7 @@ import static org.assertj.core.api.Assertions.entry;
 
 class ConfigServiceTest {
 
-  private final Repository REPOSITORY = RepositoryTestData.create42Puzzle();
+  private final String NAMESPACE = "HITCHHIKER";
   private ConfigService configService;
 
   @BeforeEach
@@ -54,7 +52,8 @@ class ConfigServiceTest {
         Map.of(
           "lang", new PredefinedKey(List.of("Java", "TypeScript")),
           "arbitrary", new PredefinedKey(List.of()),
-          "default", new PredefinedKey(List.of(), "default")
+          "default", new PredefinedKey(List.of(), "default"),
+          "mandatory", new PredefinedKey(List.of(), ValueMode.MANDATORY, "")
         )
       );
 
@@ -66,7 +65,8 @@ class ConfigServiceTest {
       assertThat(result.getPredefinedKeys()).containsOnly(
         entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
         entry("arbitrary", new PredefinedKey(List.of())),
-        entry("default", new PredefinedKey(List.of(), "default"))
+        entry("default", new PredefinedKey(List.of(), "default")),
+        entry("mandatory", new PredefinedKey(List.of(), ValueMode.MANDATORY, ""))
       );
     }
 
@@ -104,7 +104,8 @@ class ConfigServiceTest {
         Map.of(
           "lang", new PredefinedKey(List.of("Java", "TypeScript")),
           "arbitrary", new PredefinedKey(List.of()),
-          "default", new PredefinedKey(List.of(), "default")
+          "default", new PredefinedKey(List.of(), "default"),
+          "mandatory", new PredefinedKey(List.of(), ValueMode.MANDATORY, "")
         )
       );
 
@@ -114,7 +115,8 @@ class ConfigServiceTest {
       assertThat(result.getPredefinedKeys()).containsOnly(
         entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
         entry("arbitrary", new PredefinedKey(List.of())),
-        entry("default", new PredefinedKey(List.of(), "default"))
+        entry("default", new PredefinedKey(List.of(), "default")),
+        entry("mandatory", new PredefinedKey(List.of(), ValueMode.MANDATORY, ""))
       );
     }
 
@@ -158,9 +160,9 @@ class ConfigServiceTest {
           "arbitrary", new PredefinedKey(List.of())
         )
       );
-      configService.setNamespaceConfig(REPOSITORY.getNamespace(), namespaceConfig);
+      configService.setNamespaceConfig(NAMESPACE, namespaceConfig);
 
-      Map<String, PredefinedKey> result = configService.getAllPredefinedKeys(REPOSITORY);
+      Map<String, PredefinedKey> result = configService.getAllPredefinedKeys(NAMESPACE);
       assertThat(result).containsOnly(
         entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
         entry("arbitrary", new PredefinedKey(List.of()))
@@ -184,9 +186,9 @@ class ConfigServiceTest {
           "arbitrary", new PredefinedKey(List.of())
         )
       );
-      configService.setNamespaceConfig(REPOSITORY.getNamespace(), namespaceConfig);
+      configService.setNamespaceConfig(NAMESPACE, namespaceConfig);
 
-      Map<String, PredefinedKey> result = configService.getAllPredefinedKeys(REPOSITORY);
+      Map<String, PredefinedKey> result = configService.getAllPredefinedKeys(NAMESPACE);
       assertThat(result).containsOnly(
         entry("lang", new PredefinedKey(List.of("Java", "TypeScript")))
       );
@@ -209,9 +211,9 @@ class ConfigServiceTest {
           "lang", new PredefinedKey(List.of("Rust", "Go"))
         )
       );
-      configService.setNamespaceConfig(REPOSITORY.getNamespace(), namespaceConfig);
+      configService.setNamespaceConfig(NAMESPACE, namespaceConfig);
 
-      Map<String, PredefinedKey> result = configService.getAllPredefinedKeys(REPOSITORY);
+      Map<String, PredefinedKey> result = configService.getAllPredefinedKeys(NAMESPACE);
       assertThat(result).containsOnly(
         entry("lang", new PredefinedKey(List.of("Rust", "Go")))
       );

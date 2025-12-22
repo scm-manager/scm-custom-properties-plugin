@@ -14,10 +14,10 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { HalRepresentation, Link, Repository } from "@scm-manager/ui-types";
+import { HalRepresentation, Link, Namespace, Repository } from "@scm-manager/ui-types";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import { CustomProperty, PredefinedKeys } from "./types";
-import { apiClient } from "@scm-manager/ui-api";
+import { apiClient, useRequiredIndexLink } from "@scm-manager/ui-api";
 
 const customPropertyContentType = "application/vnd.scmm-CustomProperty+json;v=2";
 
@@ -68,6 +68,20 @@ export const useQueryPredefinedKeys = (repository: Repository, filter: string) =
   return useQuery<PredefinedKeys, Error>(
     ["repository", repository.namespace, repository.name, "predefinedKeys", filter],
     () => apiClient.get(`${predefinedKeysLink}?filter=${filter}`).then((response) => response.json()),
+  );
+};
+
+export const useMissingMandatoryProperties = () => {
+  const mandatoryPropertiesLink = useRequiredIndexLink("missingMandatoryProperties");
+  return useQuery<Record<string, string[]>, Error>([], () =>
+    apiClient.get(mandatoryPropertiesLink).then((response) => response.json()),
+  );
+};
+
+export const useMissingMandatoryPropertiesForNamespace = (namespace: Namespace) => {
+  const mandatoryPropertiesLink = requiredLink(namespace, "missingMandatoryProperties");
+  return useQuery<Record<string, string[]>, Error>([], () =>
+    apiClient.get(mandatoryPropertiesLink).then((response) => response.json()),
   );
 };
 

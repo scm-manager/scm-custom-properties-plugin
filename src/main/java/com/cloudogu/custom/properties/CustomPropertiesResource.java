@@ -169,7 +169,7 @@ public class CustomPropertiesResource {
     Repository repository = tryToGetRepository(namespace, name);
     RepositoryPermissions.read(repository).check();
 
-    return predefinedKeyMapper.mapAll(service.getFilteredPredefinedKeys(repository, filter));
+    return predefinedKeyMapper.mapAll(service.getFilteredPredefinedKeys(repository.getNamespace(), filter));
   }
 
   @PUT

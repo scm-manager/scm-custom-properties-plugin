@@ -15,11 +15,21 @@
  */
 
 import React, { useState } from "react";
-import { Subtitle, Title, Input, Label, ChipInputField, Level, Button, SelectField } from "@scm-manager/ui-core";
+import {
+  Subtitle,
+  Title,
+  Input,
+  Label,
+  ChipInputField,
+  Level,
+  Button,
+  SelectField,
+  RadioGroup,
+} from "@scm-manager/ui-core";
 import { Option } from "@scm-manager/ui-types";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { PredefinedKeys, SinglePredefinedKey } from "../types";
+import { PredefinedKeys, SinglePredefinedKey, ValueMode, valueModes } from "../types";
 import { useHistory } from "react-router";
 import { validateKey } from "../validation";
 
@@ -27,6 +37,7 @@ const FORM_IDS = {
   form: "form-predefinedKey",
   keyInput: "input-Key",
   allowedValuesInput: "input-allowedValues",
+  mandatoryOrDefaultInput: "input-mandatoryOrDefault",
   defaultValueInput: "input-defaultValue",
 };
 
@@ -68,6 +79,9 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
       return { label: value, value };
     }),
   );
+
+  const [valueMode, setValueMode] = useState<ValueMode>(initialState.mode);
+
   const [defaultValue, setDefaultValue] = useState(initialState.defaultValue);
 
   const onKeyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +96,7 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
 
   const onAllowedValueChange = (newAllowedValues: Option<string>[]) => {
     if (newAllowedValues.length !== 0 && !newAllowedValues.some((option) => option.value === defaultValue)) {
-      setDefaultValue("");
+      setDefaultValue(newAllowedValues[0].value);
     }
 
     setAllowedValues(newAllowedValues);
@@ -90,6 +104,18 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
 
   const onDefaultValueChange = (event: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLSelectElement>) => {
     setDefaultValue(event.target.value);
+  };
+
+  const onValueModeChange = (newValue: ValueMode) => {
+    setValueMode(newValue);
+
+    if (
+      newValue === "DEFAULT" &&
+      allowedValues.length !== 0 &&
+      !allowedValues.some((option) => option.value === defaultValue)
+    ) {
+      setDefaultValue(allowedValues[0].value);
+    }
   };
 
   const isAllowedValuesDirty = () => {
@@ -107,9 +133,12 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
   };
 
   const isDirty = () =>
-    key !== initialState.key || defaultValue !== initialState.defaultValue || isAllowedValuesDirty();
+    key !== initialState.key ||
+    defaultValue !== initialState.defaultValue ||
+    valueMode !== initialState.mode ||
+    isAllowedValuesDirty();
 
-  const isValid = () => keyError === "" && key !== "";
+  const isValid = () => keyError === "" && key !== "" && (valueMode !== "DEFAULT" || defaultValue !== "");
 
   const redirectBackToConfig = () => {
     history.push(redirectUrl);
@@ -117,7 +146,12 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await submit({ key, allowedValues: allowedValues.map((option) => option.value), defaultValue });
+    await submit({
+      key,
+      allowedValues: allowedValues.map((option) => option.value),
+      defaultValue,
+      mode: valueMode,
+    });
     redirectBackToConfig();
   };
 
@@ -153,39 +187,66 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
         />
       </Row>
       <Row>
-        {allowedValues.length === 0 ? (
-          <Field>
-            <Label htmlFor={FORM_IDS.defaultValueInput}>
-              {t("scm-custom-properties-plugin.config.general.defaultValue.label")}
-            </Label>
-            <div className="control">
-              <Input
-                id={FORM_IDS.defaultValueInput}
-                form={FORM_IDS.form}
-                onChange={onDefaultValueChange}
-                value={defaultValue}
-                readOnly={isSubmitting}
-              />
-            </div>
-          </Field>
-        ) : (
-          <SelectField
-            className="column"
-            label={t("scm-custom-properties-plugin.config.general.defaultValue.label")}
-            id={FORM_IDS.defaultValueInput}
-            form={FORM_IDS.form}
-            value={defaultValue}
-            onChange={onDefaultValueChange}
-          >
-            <option value=""></option>
-            {allowedValues.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </SelectField>
-        )}
+        <fieldset className="field column">
+          <Label as="legend" htmlFor={FORM_IDS.mandatoryOrDefaultInput}>
+            {t("scm-custom-properties-plugin.config.general.mandatoryOrDefault.label")}
+          </Label>
+          <div>
+            <RadioGroup
+              className="column"
+              id={FORM_IDS.mandatoryOrDefaultInput}
+              onValueChange={onValueModeChange}
+              value={valueMode}
+            >
+              {valueModes.map((value) => (
+                <RadioGroup.Option
+                  id={`${FORM_IDS.mandatoryOrDefaultInput}-${value}`}
+                  form={FORM_IDS.form}
+                  key={value}
+                  value={value}
+                  label={t(`scm-custom-properties-plugin.config.general.mandatoryOrDefault.${value}`)}
+                  disabled={isSubmitting}
+                />
+              ))}
+            </RadioGroup>
+          </div>
+        </fieldset>
       </Row>
+      {valueMode === "DEFAULT" ? (
+        <Row>
+          {allowedValues.length === 0 ? (
+            <Field>
+              <Label htmlFor={FORM_IDS.defaultValueInput}>
+                {t("scm-custom-properties-plugin.config.general.defaultValue.label")}
+              </Label>
+              <div className="control">
+                <Input
+                  id={FORM_IDS.defaultValueInput}
+                  form={FORM_IDS.form}
+                  onChange={onDefaultValueChange}
+                  value={defaultValue}
+                  readOnly={isSubmitting}
+                />
+              </div>
+            </Field>
+          ) : (
+            <SelectField
+              className="column"
+              label={t("scm-custom-properties-plugin.config.general.defaultValue.label")}
+              id={FORM_IDS.defaultValueInput}
+              form={FORM_IDS.form}
+              value={defaultValue}
+              onChange={onDefaultValueChange}
+            >
+              {allowedValues.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectField>
+          )}
+        </Row>
+      ) : null}
       <Level
         right={
           <ButtonsContainer>

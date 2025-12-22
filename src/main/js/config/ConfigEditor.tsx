@@ -85,6 +85,7 @@ const ConfigEditor = <T extends BaseConfig>({ config, update, redirectUrl, isUpd
           key: originalKey,
           allowedValues: predefinedKey.allowedValues,
           defaultValue: predefinedKey.defaultValue,
+          mode: predefinedKey.mode,
         }}
         existingPredefinedKeys={config.predefinedKeys}
         redirectUrl={redirectUrl}
@@ -94,6 +95,7 @@ const ConfigEditor = <T extends BaseConfig>({ config, update, redirectUrl, isUpd
           predefinedKeys[updatedPredefinedKey.key] = {
             allowedValues: updatedPredefinedKey.allowedValues,
             defaultValue: updatedPredefinedKey.defaultValue,
+            mode: updatedPredefinedKey.mode,
           };
 
           return update({ ...config, predefinedKeys });
@@ -106,7 +108,7 @@ const ConfigEditor = <T extends BaseConfig>({ config, update, redirectUrl, isUpd
   if (params.field === "predefinedKeys" && !originalKey) {
     return (
       <PredefinedKeyEditor
-        initial={{ key: "", allowedValues: [], defaultValue: "" }}
+        initial={{ key: "", allowedValues: [], defaultValue: "", mode: "NONE" }}
         existingPredefinedKeys={config.predefinedKeys}
         redirectUrl={redirectUrl}
         submit={async (addedPredefinedKey) => {
@@ -114,6 +116,7 @@ const ConfigEditor = <T extends BaseConfig>({ config, update, redirectUrl, isUpd
           predefinedKeys[addedPredefinedKey.key] = {
             allowedValues: addedPredefinedKey.allowedValues,
             defaultValue: addedPredefinedKey.defaultValue,
+            mode: addedPredefinedKey.mode,
           };
 
           return update({ ...config, predefinedKeys });

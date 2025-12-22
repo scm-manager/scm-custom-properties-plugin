@@ -103,7 +103,7 @@ class CustomPropertiesResourceTest {
     this.configService = new ConfigService(new InMemoryByteConfigurationStoreFactory());
     CustomPropertiesResource resource = new CustomPropertiesResource(
       repositoryManager,
-      new CustomPropertiesService(storeFactory, configService, eventBus),
+      new CustomPropertiesService(storeFactory, configService, eventBus, repositoryManager),
       configService,
       customPropertyMapper,
       new PredefinedKeyMapperImpl()
@@ -267,7 +267,7 @@ class CustomPropertiesResourceTest {
 
       assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
       assertThat(response.getContentAsString()).isEqualTo("""
-        [{"key":"hello","value":"world","defaultProperty":false}]""");
+        [{"key":"hello","value":"world","defaultProperty":false,"mandatory":false}]""");
     }
 
     @Test
@@ -287,7 +287,7 @@ class CustomPropertiesResourceTest {
 
       assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
       assertThat(response.getContentAsString()).isEqualTo("""
-        [{"key":"hello","value":"world","defaultProperty":true}]""");
+        [{"key":"hello","value":"world","defaultProperty":true,"mandatory":false}]""");
     }
 
     @Test

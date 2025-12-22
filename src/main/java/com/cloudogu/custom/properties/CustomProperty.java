@@ -43,8 +43,15 @@ public class CustomProperty implements Comparable<CustomProperty>, Serializable 
   @XmlTransient
   private boolean isDefaultProperty = false;
 
+  /*
+   * Ignoring this field for serialization
+   * Since whether a Custom Property is mandatory or not, is defined dynamically through the global and namespace config of the corresponding predefined key.
+   */
+  @XmlTransient
+  private boolean isMandatory = false;
+
   public CustomProperty(String key, String value) {
-    this(key, value, false);
+    this(key, value, false, false);
   }
 
   @Override

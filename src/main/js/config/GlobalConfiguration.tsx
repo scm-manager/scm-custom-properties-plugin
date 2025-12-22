@@ -21,20 +21,27 @@ import { GlobalConfig } from "../types";
 import { useConfigLink } from "@scm-manager/ui-api";
 import GeneralSettings from "./GeneralSettings";
 import PredefinedKeys from "./PredefinedKeys";
+import { useMissingMandatoryProperties } from "../hooks";
 
 const GlobalConfiguration: FC<{ link: string }> = ({ link }) => {
   const [t] = useTranslation("plugins");
   const { isLoading, error, initialConfiguration: config, update, isUpdating } = useConfigLink<GlobalConfig>(link);
+  const {
+    isLoading: isLoadingMissingProperties,
+    error: missingPropertiesError,
+    data: missingProperties,
+  } = useMissingMandatoryProperties();
   useDocumentTitle(t("scm-custom-properties-plugin.config.title"));
   const baseUrl = "/admin/settings/custom-properties";
   const editUrl = `${baseUrl}/edit`;
+  const missingPropertiesUrl = `${baseUrl}/missing-mandatory-properties`;
 
   if (isLoading) {
     return <Loading />;
   }
 
-  if (error) {
-    return <ErrorNotification error={error} />;
+  if (error || missingPropertiesError) {
+    return <ErrorNotification error={error || missingPropertiesError} />;
   }
 
   if (!config) {
@@ -62,7 +69,15 @@ const GlobalConfiguration: FC<{ link: string }> = ({ link }) => {
       <Subtitle>{t("scm-custom-properties-plugin.config.general.subtitle")}</Subtitle>
       <GeneralSettings editBaseUrl={editUrl} settings={generalSettings} />
       <Subtitle>{t("scm-custom-properties-plugin.config.predefinedKeys.subtitle")}</Subtitle>
-      <PredefinedKeys config={config} update={update} isLoading={isUpdating} editBaseUrl={editUrl} />
+      <PredefinedKeys
+        config={config}
+        update={update}
+        isLoading={isUpdating}
+        editBaseUrl={editUrl}
+        isMissingPropertiesLoading={isLoadingMissingProperties}
+        missingProperties={missingProperties ?? {}}
+        missingPropertiesBaseUrl={missingPropertiesUrl}
+      />
     </>
   );
 };

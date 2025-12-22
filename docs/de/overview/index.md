@@ -57,3 +57,21 @@ Sollte dem Benutzer diese Berechtigung fehlen, werden die entsprechenden Buttons
 Falls in der Konfiguration auf globaler oder Namespace-Ebene, Custom Properties mit einem Default-Wert definiert wurden,
 dann erscheinen diese als Default Custom Properties in den jeweiligen Repositories, solange Sie nicht explizit erstellt wurden.
 Default Custom Properties unterscheiden sich dadurch, dass der Wert mit einem "Default-Wert" Tag versehen sind und man diese nicht löschen kann.
+
+## Custom Properties mit einem Pflichtwert
+
+![Tabelle der Custom Properties eines Repositories mit Pflichtwerten](./assets/mandatory-properties-overview.png)
+
+Falls in der Konfiguration auf globaler oder Namespace-Ebene Custom Properties mit einem Pflichtwert definiert wurden,
+dann werden diese in den Repositories auf zwei verschiedene Arten gekennzeichnet.
+Falls das jeweilige Custom Property für das Repository definiert wurde, dann wird der Wert mit einem "Pflichtwert" Tag versehen.
+Sollte das jeweilige Custom Property nicht definiert sein, dann erscheint der Schlüssel am unteren Ende der Tabelle mit den anderen fehlenden Pflichtwerten.
+
+## Hinweis auf fehlende Custom Properties mit Pflichtwerten
+
+![Banner mit dem Hinweis, dass in diesem Repository noch Custom Properties mit Pflichtwerten fehlen](./assets/mandatory-properties-banner.png)
+
+Falls Custom Properties mit einem Pflichtwert definiert wurden, aber in einem Repository nicht definiert sind,
+dann wird in dem jeweiligen Repository unterhalb des Titels ein Banner angezeigt.
+Dieser informiert den Benutzer darüber, dass noch Custom Properties mit einem Pflichtwert angelegt werden müssen.
+Dieser Banner enthält auch einen Link zu der Übersichtsseite mit den Custom Properties vom jeweiligen Repository.

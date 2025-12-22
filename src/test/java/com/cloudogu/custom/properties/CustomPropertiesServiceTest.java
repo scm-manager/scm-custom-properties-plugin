@@ -18,10 +18,13 @@ package com.cloudogu.custom.properties;
 
 import com.cloudogu.custom.properties.config.ConfigService;
 import com.cloudogu.custom.properties.config.PredefinedKey;
+import com.cloudogu.custom.properties.config.ValueMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -30,6 +33,7 @@ import sonia.scm.AlreadyExistsException;
 import sonia.scm.NotFoundException;
 import sonia.scm.event.ScmEventBus;
 import sonia.scm.repository.Repository;
+import sonia.scm.repository.RepositoryManager;
 import sonia.scm.repository.RepositoryTestData;
 import sonia.scm.store.DataStore;
 import sonia.scm.store.InMemoryByteConfigurationEntryStoreFactory;
@@ -38,18 +42,24 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CustomPropertiesServiceTest {
 
   private final Repository repository = RepositoryTestData.createHeartOfGold();
+  private final String namespace = repository.getNamespace();
   @Mock
   ScmEventBus eventBus;
   @Captor
@@ -57,6 +67,8 @@ class CustomPropertiesServiceTest {
   private DataStore<CustomProperty> store;
   @Mock
   private ConfigService configService;
+  @Mock
+  private RepositoryManager repositoryManager;
   private CustomPropertiesService customPropertiesService;
 
   @BeforeEach
@@ -68,7 +80,7 @@ class CustomPropertiesServiceTest {
   void setup() {
     InMemoryByteConfigurationEntryStoreFactory storeFactory = new InMemoryByteConfigurationEntryStoreFactory();
     store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
-    customPropertiesService = new CustomPropertiesService(storeFactory, configService, eventBus);
+    customPropertiesService = new CustomPropertiesService(storeFactory, configService, eventBus, repositoryManager);
   }
 
   @Nested
@@ -76,30 +88,30 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldReturnNoKeysBecauseNoKeysWerePredefined() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of());
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of());
 
-      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(repository, "");
+      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(namespace, "");
       assertThat(result).isEmpty();
     }
 
     @Test
     void shouldReturnNoKeysBecauseFilterDoesNotMatchAnyKeys() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
         "lang", new PredefinedKey(List.of("Java", "TypeScript"))
       ));
 
-      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(repository, "Some complete nonsense");
+      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(namespace, "Some complete nonsense");
       assertThat(result).isEmpty();
     }
 
     @Test
     void shouldReturnAllPredefinedKeysBecauseFilterIsEmpty() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
         "lang", new PredefinedKey(List.of("Java", "TypeScript")),
         "arbitrary", new PredefinedKey(List.of())
       ));
 
-      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(repository, "");
+      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(namespace, "");
       assertThat(result).containsOnly(
         entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
         entry("arbitrary", new PredefinedKey(List.of()))
@@ -108,12 +120,12 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldReturnAllPredefinedKeysBecauseFilterIsNull() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
         "lang", new PredefinedKey(List.of("Java", "TypeScript")),
         "arbitrary", new PredefinedKey(List.of())
       ));
 
-      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(repository, null);
+      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(namespace, null);
       assertThat(result).containsOnly(
         entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
         entry("arbitrary", new PredefinedKey(List.of()))
@@ -122,12 +134,12 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldReturnAllPredefinedKeysThatMatchTheFilter() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
         "lang", new PredefinedKey(List.of("Java", "TypeScript")),
         "arbitrary", new PredefinedKey(List.of())
       ));
 
-      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(repository, "lan");
+      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(namespace, "lan");
       assertThat(result).containsOnly(
         entry("lang", new PredefinedKey(List.of("Java", "TypeScript")))
       );
@@ -135,12 +147,12 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldApplyFilterCaseInsensitive() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
         "lang", new PredefinedKey(List.of("Java", "TypeScript")),
         "LANG", new PredefinedKey(List.of())
       ));
 
-      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(repository, "lAn");
+      Map<String, PredefinedKey> result = customPropertiesService.getFilteredPredefinedKeys(namespace, "lAn");
       assertThat(result).containsOnly(
         entry("lang", new PredefinedKey(List.of("Java", "TypeScript"))),
         entry("LANG", new PredefinedKey(List.of()))
@@ -170,7 +182,7 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldGetDefaultPropertyBecauseOfPredefinedKey() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(
         Map.of(
           "lang", new PredefinedKey(List.of(), "Java")
         )
@@ -180,13 +192,13 @@ class CustomPropertiesServiceTest {
       Collection<CustomProperty> properties = customPropertiesService.get(repository);
 
       assertThat(properties).containsExactly(
-        new CustomProperty("lang", "Java", true), new CustomProperty("pending_release", "true")
+        new CustomProperty("lang", "Java", true, false), new CustomProperty("pending_release", "true")
       );
     }
 
     @Test
     void shouldOverrideDefaultPropertyBecauseItsAlreadyDefinedAsProperty() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(
         Map.of(
           "lang", new PredefinedKey(List.of(), "Java")
         )
@@ -202,7 +214,7 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldIgnoreDefaultPropertyBecauseDefaultValueIsEmpty() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(
         Map.of(
           "lang", new PredefinedKey(List.of(), "")
         )
@@ -218,7 +230,7 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldIgnoreDefaultPropertyBecauseDefaultValueIsNull() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(
         Map.of(
           "lang", new PredefinedKey(List.of(), null)
         )
@@ -230,6 +242,133 @@ class CustomPropertiesServiceTest {
       assertThat(properties).containsExactly(
         new CustomProperty("pending_release", "true")
       );
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ValueMode.class, mode = EnumSource.Mode.EXCLUDE, names = {"DEFAULT"})
+    void shouldIgnoreDefaultValueBecauseModeIsNotSetToDefault(ValueMode mode) {
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(
+        Map.of(
+          "lang", new PredefinedKey(List.of(), mode, "value")
+        )
+      );
+      store.put("pending_release", new CustomProperty("pending_release", "true"));
+
+      Collection<CustomProperty> properties = customPropertiesService.get(repository);
+
+      assertThat(properties).containsExactly(
+        new CustomProperty("pending_release", "true")
+      );
+    }
+
+    @Test
+    void shouldDeclareMandatoryPropertiesAsSuch() {
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(
+        Map.of(
+          "lang", new PredefinedKey(List.of(), ValueMode.DEFAULT, "Java"),
+          "timeout", new PredefinedKey(List.of(), ValueMode.NONE, ""),
+          "mandatoryButNotSet", new PredefinedKey(List.of(), ValueMode.MANDATORY, ""),
+          "pending_release", new PredefinedKey(List.of(), ValueMode.MANDATORY, "")
+        )
+      );
+
+      store.put("pending_release", new CustomProperty("pending_release", "true"));
+
+      Collection<CustomProperty> properties = customPropertiesService.get(repository);
+
+      assertThat(properties).containsExactly(
+        new CustomProperty("lang", "Java", true, false),
+        new CustomProperty("pending_release", "true", false, true)
+      );
+    }
+  }
+
+  @Nested
+  class GetMissingMandatoryProperties {
+
+    @Test
+    void shouldReturnEveryMissingPropertiesFromEachRepository() {
+      Repository otherRepository = RepositoryTestData.create42Puzzle();
+      when(repositoryManager.getAll()).thenReturn(List.of(repository, otherRepository));
+      when(configService.getAllPredefinedKeys(any())).thenReturn(Map.of(
+        "a", new PredefinedKey(List.of(), ValueMode.MANDATORY, ""),
+        "b", new PredefinedKey(List.of(), ValueMode.MANDATORY, ""),
+        "c", new PredefinedKey(List.of("1", "2"), ValueMode.MANDATORY, ""),
+        "d", new PredefinedKey(List.of("3", "4"), ValueMode.MANDATORY, "")
+      ));
+
+      customPropertiesService.create(repository, new CustomProperty("a", "value"));
+      customPropertiesService.create(repository, new CustomProperty("c", "1"));
+
+      customPropertiesService.create(otherRepository, new CustomProperty("b", "value"));
+      customPropertiesService.create(otherRepository, new CustomProperty("c", "1"));
+
+      Map<String, Collection<Repository>> result = customPropertiesService.getMissingMandatoryProperties();
+
+      assertThat(result).containsOnly(
+        entry("a", List.of(otherRepository)),
+        entry("b", List.of(repository)),
+        entry("d", List.of(repository, otherRepository))
+      );
+
+      //getAllPredefinedKeys should be called 5 times in total.
+      //Three times for `repository` because of the two custom property creation and for the check of missing mandatory properties
+      //Two times for `otherRepository` because of the two custom property creation,
+      //but not for the check of missing mandatory properties, because at this point the cache should be used
+      verify(configService, times(5)).getAllPredefinedKeys(namespace);
+      verifyNoMoreInteractions(configService);
+    }
+  }
+
+  @Nested
+  class GetMissingMandatoryPropertiesForNamespace {
+
+    @Test
+    void shouldReturnMissingPropertiesFromEachNamespaceRepositories() {
+      Repository otherRepository = RepositoryTestData.create42Puzzle();
+      otherRepository.setNamespace("Kanto");
+
+      when(repositoryManager.getAll(any())).thenAnswer(
+        invocation -> Stream.of(repository, otherRepository).filter(invocation.getArgument(0)).toList()
+      );
+
+      when(configService.getAllPredefinedKeys(otherRepository.getNamespace())).thenReturn(Map.of(
+        "a", new PredefinedKey(List.of(), ValueMode.MANDATORY, ""),
+        "b", new PredefinedKey(List.of(), ValueMode.MANDATORY, ""),
+        "c", new PredefinedKey(List.of("1", "2"), ValueMode.MANDATORY, ""),
+        "d", new PredefinedKey(List.of("3", "4"), ValueMode.MANDATORY, "")
+      ));
+
+      customPropertiesService.create(otherRepository, new CustomProperty("b", "value"));
+      customPropertiesService.create(otherRepository, new CustomProperty("c", "1"));
+
+      Map<String, Collection<Repository>> result = customPropertiesService.getMissingMandatoryPropertiesForNamespace("Kanto");
+
+      assertThat(result).containsOnly(
+        entry("a", List.of(otherRepository)),
+        entry("d", List.of(otherRepository))
+      );
+    }
+  }
+
+  @Nested
+  class GetMissingMandatoryPropertiesForRepository {
+
+    @Test
+    void shouldReturnMissingMandatoryPropertiesForRepository() {
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
+        "a", new PredefinedKey(List.of(), ValueMode.MANDATORY, ""),
+        "b", new PredefinedKey(List.of(), ValueMode.MANDATORY, ""),
+        "c", new PredefinedKey(List.of("1", "2"), ValueMode.MANDATORY, ""),
+        "d", new PredefinedKey(List.of("3", "4"), ValueMode.MANDATORY, "")
+      ));
+
+      customPropertiesService.create(repository, new CustomProperty("b", "value"));
+      customPropertiesService.create(repository, new CustomProperty("c", "1"));
+
+      Collection<String> result = customPropertiesService.getMissingMandatoryPropertiesForRepository(repository);
+
+      assertThat(result).containsOnly("a", "d");
     }
   }
 
@@ -246,7 +385,7 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldThrowBadRequestBecauseValueIsInvalid() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
         "key1", new PredefinedKey(List.of("allowedValue"))
       ));
 
@@ -256,7 +395,7 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldCreateNewCustomPropertyWithoutPredefinedKey() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of());
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of());
 
       customPropertiesService.create(repository, new CustomProperty("key1", "value1"));
 
@@ -271,7 +410,7 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldCreateNewCustomPropertyWithValidationDisabled() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
         "key1", new PredefinedKey(List.of())
       ));
 
@@ -287,7 +426,7 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldCreateNewCustomPropertyWithValidatedValue() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
         "key1", new PredefinedKey(List.of("value1"))
       ));
 
@@ -314,7 +453,7 @@ class CustomPropertiesServiceTest {
 
     @Test
     void shouldThrowBadRequestBecauseValueIsInvalid() {
-      when(configService.getAllPredefinedKeys(repository)).thenReturn(Map.of(
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
         "key1", new PredefinedKey(List.of("allowedValue"))
       ));
 

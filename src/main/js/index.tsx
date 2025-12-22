@@ -24,6 +24,7 @@ import CustomPropertiesEditor from "./overview/CustomPropertiesEditor";
 import CustomPropertyHitRenderer from "./search/CustomPropertyHitRenderer";
 import bindGlobalConfig from "./config/GlobalConfigRouteSetup";
 import bindNamespaceConfig from "./config/NamespaceConfigRouteSetup";
+import MissingPropertyBanner from "./banner/MissingPropertyBanner";
 
 const CustomPropertiesPredicate = ({ repository }: { repository: Repository }) => {
   return repository._embedded?.customProperties;
@@ -60,6 +61,8 @@ const CustomPropertiesEditorRoute = ({ url, repository }: { url: string; reposit
   );
 };
 binder.bind("repository.route", CustomPropertiesEditorRoute, CustomPropertiesPredicate);
+
+binder.bind("repository.banner", MissingPropertyBanner);
 
 binder.bind("search.hit.indexedCustomProperty.renderer", CustomPropertyHitRenderer);
 

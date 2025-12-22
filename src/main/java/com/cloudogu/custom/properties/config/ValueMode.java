@@ -16,23 +16,6 @@
 
 package com.cloudogu.custom.properties.config;
 
-import de.otto.edison.hal.HalRepresentation;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-
-import java.util.List;
-
-@EqualsAndHashCode(callSuper = false)
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class PredefinedKeyDto extends HalRepresentation {
-
-  @NotNull
-  private List<String> allowedValues;
-  private ValueMode mode = ValueMode.DEFAULT;
-  private String defaultValue = "";
+public enum ValueMode {
+  MANDATORY, DEFAULT, NONE
 }

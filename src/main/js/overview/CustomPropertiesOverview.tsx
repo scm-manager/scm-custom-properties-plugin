@@ -14,7 +14,7 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import React, { FC, useState } from "react";
+import React, { FC, useEffect, useState } from "react";
 import { HalRepresentation, Repository } from "@scm-manager/ui-types";
 import {
   Subtitle,
@@ -32,14 +32,77 @@ import { useDeleteCustomProperty } from "../hooks";
 import CenteredTableFooter from "../component/CenteredTableFooter";
 import MinWidthTableCell from "../component/MinWidthTableCell";
 import PropertyTag from "../component/PropertyTag";
+import { useLocation } from "react-router";
 
 type CustomPropertyActionProps = {
   repository: Repository;
   customProperty: CustomProperty;
   modifyUrl: string;
+  isCreateAllowed: boolean;
 };
 
-const CustomPropertyAction: FC<CustomPropertyActionProps> = ({ repository, customProperty, modifyUrl }) => {
+type MissingPropertyActionProps = {
+  missingProperty: string;
+  modifyUrl: string;
+};
+
+//Copy and Paste from the Core, due to the limitation of core version for this plugin
+const WarningIcon: FC = () => {
+  return (
+    <span className="icon has-text-warning" aria-hidden="true">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        id="Ebene_1"
+        data-name="Ebene 1"
+        height="1em"
+        width="1em"
+        viewBox="0 0 140 140"
+        fill="currentColor"
+        className="fas fa-fw fa-custom-icon fa-lg"
+      >
+        <defs>
+          <mask id="cutoutMask">
+            <rect x="0" y="0" width="140" height="140" fill="white" />
+            <path
+              className="cls-2"
+              d="M79.93,109.67c-2.75,2.75-6.06,4.13-9.93,4.13s-7.18-1.38-9.93-4.13-4.13-6.06-4.13-9.93,1.38-7.18,4.13-9.93,6.06-4.13,9.93-4.13,7.18,1.38,9.93,4.13,4.13,6.06,4.13,9.93-1.38,7.18-4.13,9.93ZM59.98,76.01c0,1.17.41,2.14,1.23,2.9s1.82,1.14,2.99,1.14h11.6c1.17,0,2.17-.38,2.99-1.14s1.23-1.73,1.23-2.9l2.46-47.81c0-1.17-.41-2.2-1.23-3.08s-1.82-1.32-2.99-1.32h-16.52c-1.17,0-2.17.44-2.99,1.32s-1.23,1.9-1.23,3.08l2.46,47.81Z"
+              fill="black"
+            />
+          </mask>
+        </defs>
+        <path
+          className="cls-1"
+          d="M125,0c4.17,0,7.71,1.46,10.62,4.38s4.38,6.46,4.38,10.62v110c0,4.17-1.46,7.71-4.38,10.63-2.92,2.92-6.46,4.38-10.62,4.38H15c-4.17,0-7.71-1.46-10.62-4.38-2.92-2.92-4.38-6.46-4.38-10.63V15c0-4.17,1.46-7.71,4.38-10.62S10.83,0,15,0h110Z"
+          mask="url(#cutoutMask)"
+          fill="currentColor"
+        />
+      </svg>
+    </span>
+  );
+};
+
+const MissingPropertyAction: FC<MissingPropertyActionProps> = ({ missingProperty, modifyUrl }) => {
+  const [t] = useTranslation("plugins");
+
+  return (
+    <span>
+      <LinkButton
+        className="px-2"
+        to={`${modifyUrl}?missingProperty=${encodeURIComponent(missingProperty)}`}
+        aria-label={t("scm-custom-properties-plugin.table.body.edit", { key: missingProperty })}
+      >
+        <Icon>edit</Icon>
+      </LinkButton>
+    </span>
+  );
+};
+
+const CustomPropertyAction: FC<CustomPropertyActionProps> = ({
+  repository,
+  customProperty,
+  modifyUrl,
+  isCreateAllowed,
+}) => {
   const [t] = useTranslation("plugins");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const { deleteCustomProperty, isLoading } = useDeleteCustomProperty(repository);
@@ -53,7 +116,7 @@ const CustomPropertyAction: FC<CustomPropertyActionProps> = ({ repository, custo
 
   return (
     <>
-      {customProperty.defaultProperty ? (
+      {customProperty.defaultProperty && isCreateAllowed ? (
         <span className="mr-4">
           <LinkButton
             className="px-2"
@@ -109,14 +172,28 @@ const CustomPropertyAction: FC<CustomPropertyActionProps> = ({ repository, custo
 type CustomPropertiesTableProps = {
   repository: Repository;
   customProperties: CustomProperty[];
+  missingProperties: string[];
   modifyUrl: string;
 };
 
-const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({ repository, customProperties, modifyUrl }) => {
+const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({
+  repository,
+  customProperties,
+  modifyUrl,
+  missingProperties,
+}) => {
+  const location = useLocation();
   const [t] = useTranslation("plugins");
   const isCreateAllowed = (repository._embedded?.customProperties as HalRepresentation)?._links?.create !== undefined;
 
   const defaultValueTag = t("scm-custom-properties-plugin.editor.defaultValueTag");
+  const mandatoryValueTag = t("scm-custom-properties-plugin.editor.mandatoryValueTag");
+
+  useEffect(() => {
+    if (location.hash) {
+      document.getElementById(location.hash.substring(1))?.scrollIntoView({ behavior: "instant" });
+    }
+  }, [location.hash]);
 
   return (
     <table className="table">
@@ -136,12 +213,43 @@ const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({ repository, cus
               <td>
                 {property.value}
                 {property.defaultProperty && <PropertyTag>{defaultValueTag}</PropertyTag>}
+                {property.mandatory && <PropertyTag>{mandatoryValueTag}</PropertyTag>}
               </td>
               <MinWidthTableCell>
-                <CustomPropertyAction repository={repository} customProperty={property} modifyUrl={modifyUrl} />
+                <CustomPropertyAction
+                  repository={repository}
+                  customProperty={property}
+                  modifyUrl={modifyUrl}
+                  isCreateAllowed={isCreateAllowed}
+                />
               </MinWidthTableCell>
             </tr>
           ))}
+        {missingProperties.length !== 0 ? (
+          <>
+            <tr>
+              <th id="missing-properties" colSpan={2}>
+                <div className="is-flex is-align-items-center">
+                  {t("scm-custom-properties-plugin.table.header.missingProperty")}
+                  <span className="ml-2">
+                    <WarningIcon>exclamation</WarningIcon>
+                  </span>
+                </div>
+              </th>
+              <th>{t("scm-custom-properties-plugin.table.header.action")}</th>
+            </tr>
+            {[...missingProperties]
+              .sort((keyA, keyB) => keyA.localeCompare(keyB))
+              .map((value) => (
+                <tr key={value}>
+                  <td colSpan={2}>{value}</td>
+                  <MinWidthTableCell>
+                    {isCreateAllowed && <MissingPropertyAction missingProperty={value} modifyUrl={modifyUrl} />}
+                  </MinWidthTableCell>
+                </tr>
+              ))}
+          </>
+        ) : null}
       </tbody>
       {isCreateAllowed ? (
         <CenteredTableFooter>
@@ -166,12 +274,19 @@ const CustomPropertiesOverview: FC<Props> = ({ repository }) => {
   const [t] = useTranslation("plugins");
   useDocumentTitleForRepository(repository, t("scm-custom-properties-plugin.repository.subtitle"));
   const customProperties = (repository._embedded?.customProperties as { properties: CustomProperty[] }).properties;
+  const missingMandatoryProperties = (repository._embedded?.missingMandatoryProperties as { missing: string[] })
+    .missing;
   const modifyUrl = `/repo/${repository.namespace}/${repository.name}/custom-properties/modify`;
 
   return (
     <>
       <Subtitle>{t("scm-custom-properties-plugin.repository.subtitle")}</Subtitle>
-      <CustomPropertiesTable repository={repository} customProperties={customProperties} modifyUrl={modifyUrl} />
+      <CustomPropertiesTable
+        repository={repository}
+        customProperties={customProperties}
+        modifyUrl={modifyUrl}
+        missingProperties={missingMandatoryProperties}
+      />
     </>
   );
 };

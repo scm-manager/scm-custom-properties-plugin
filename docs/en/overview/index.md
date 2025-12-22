@@ -56,3 +56,22 @@ If the user does not have this permission, the corresponding buttons will not be
 If custom properties with a default value have been defined in the configuration at global or namespace level,
 then will those appear as default custom properties in the respective repositories, unless they have been explicitly created.
 Default custom properties differ in that the value is marked with a "Default Value" tag and cannot be deleted.
+
+
+## Mandatory Custom Properties
+
+![Table of custom properties of a repository with mandatory custom properties](./assets/mandatory-properties-overview.png)
+
+If mandatory custom properties have been defined in the configuration at global or namespace level,
+then those will be marked in two different ways within a repository.
+If the respective custom property has been defined for the repository, the value is marked with a "Mandatory Value" tag.
+If the respective custom property is not defined, the key appears at the bottom of the table with the other missing mandatory custom properties.
+
+## Hint for missing Mandatory Custom Properties
+
+![Banner indicating that mandatory custom properties are still missing in this repository](./assets/mandatory-properties-banner.png)
+
+If mandatory custom properties have been defined but not created in a repository,
+a banner will be displayed below the title in the respective repository.
+This banner informs the user that mandatory custom properties are missing and need to be created.
+It also contains a link to the overview page with the custom properties of the respective repository.

@@ -61,5 +61,6 @@ class IndexLinkEnricherTest {
   void shouldAppendConfigLink() {
     enricher.enrich(context, appender);
     verify(appender).appendLink("customPropertiesConfig", "https://scm-test.de/scm/api/v2/custom-properties/global-configuration");
+    verify(appender).appendLink("missingMandatoryProperties", "https://scm-test.de/scm/api/v2/mandatory-properties/missing-properties");
   }
 }

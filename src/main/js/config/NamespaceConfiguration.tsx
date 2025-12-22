@@ -21,20 +21,27 @@ import { useTranslation } from "react-i18next";
 import { useConfigLink } from "@scm-manager/ui-api";
 import { NamespaceConfig } from "../types";
 import PredefinedKeys from "./PredefinedKeys";
+import { useMissingMandatoryPropertiesForNamespace } from "../hooks";
 
 const NamespaceConfiguration: FC<{ link: string; namespace: Namespace }> = ({ link, namespace }) => {
   const [t] = useTranslation("plugins");
   const { isLoading, error, initialConfiguration: config, update, isUpdating } = useConfigLink<NamespaceConfig>(link);
+  const {
+    isLoading: isLoadingMissingProperties,
+    error: missingPropertiesError,
+    data: missingProperties,
+  } = useMissingMandatoryPropertiesForNamespace(namespace);
   useDocumentTitle(t("scm-custom-properties-plugin.config.title"), namespace.namespace);
   const baseUrl = `/namespace/${namespace.namespace}/settings/custom-properties`;
   const editUrl = `${baseUrl}/edit`;
+  const missingPropertiesUrl = `${baseUrl}/missing-mandatory-properties`;
 
   if (isLoading) {
     return <Loading />;
   }
 
-  if (error) {
-    return <ErrorNotification error={error} />;
+  if (error || missingPropertiesError) {
+    return <ErrorNotification error={error || missingPropertiesError} />;
   }
 
   if (!config) {
@@ -45,7 +52,15 @@ const NamespaceConfiguration: FC<{ link: string; namespace: Namespace }> = ({ li
     <>
       <Subtitle>{t("scm-custom-properties-plugin.config.title")}</Subtitle>
       <SubSubtitle>{t("scm-custom-properties-plugin.config.predefinedKeys.subtitle")}</SubSubtitle>
-      <PredefinedKeys config={config} update={update} isLoading={isUpdating} editBaseUrl={editUrl} />
+      <PredefinedKeys
+        config={config}
+        update={update}
+        isLoading={isUpdating}
+        editBaseUrl={editUrl}
+        isMissingPropertiesLoading={isLoadingMissingProperties}
+        missingProperties={missingProperties ?? {}}
+        missingPropertiesBaseUrl={missingPropertiesUrl}
+      />
     </>
   );
 };

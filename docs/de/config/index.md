@@ -16,6 +16,8 @@ Dies navigiert den Benutzer zu einer Unterseite, auf der die Einstellung vorgeno
 
 ### Vordefinierte Schlüssel
 
+#### Anlegen eines Schlüssels
+
 Um den Benutzer beim Anlegen von Custom Properties zu unterstützen, können vordefinierte Schlüssel angelegt werden.
 Um einen neuen Schlüssel anzulegen, muss der Button "Custom Property vordefinieren" betätigt werden.
 Dadurch wird der Benutzer zu einer neuen Unterseite navigiert.
@@ -28,18 +30,36 @@ Um einen Wert hinzuzufügen, muss dieser im Eingabefeld eingegeben und anschlie�
 bestätigt werden. Bestehende Werte können mit den kleinen "x"-Symbol neben dem Wert wieder aus der Liste entfernt werden.
 Bereits für Repositories gesetzte Properties werden bei einer Änderung der Konfiguration nicht nachträglich validiert.
 
-Des Weiteren kann der Benutzer einen Default-Wert für Custom Properties mit dem jeweiligen Schlüssel vorgeben.
-Falls ein Default-Wert definiert ist und für ein Repository kein Custom Property mit dem jeweiligen Schlüssel gesetzt ist, 
-gilt für dieses Repository implizit ein Custom Property mit dem Schlüssel und Default-Wert.
+![Vordefinierte Werte zu einem vordefinierten Schlüssel](./assets/predefined_values.png)
+
+Abschließend kann der Benutzer mit einem Radio Input noch einen Typ für das Custom Property festlegen.
+Dafür gibt es drei Optionen:
+Eine einfache Property, eine Default-Property und eine Custom Property mit Pflichtwert.
+
+Bei Custom Properties mit Pflichtwert wird festgelegt, 
+dass jedes Repository ein Custom Property mit dem jeweiligen Schlüssel und einem Wert definieren muss.
+
+Bei Default-Properties wird ein Default-Wert implizit angenommen, falls für ein Repository das jeweilige Custom Property noch nicht definiert wurde.
+Falls Default-Property als Typ festgelegt wurde, dann muss der Benutzer auch einen Default-Wert angeben.
 Sollten die Werte für das Custom Property uneingeschränkt sein (wenn also keine erlaubten Werte gesetzt sind),
 erfolgt die Eingabe des Default-Werts mithilfe eines Text-Inputs.
 Sind erlaubte Werte vorgegeben, dann steht ein Dropdown mit allen erlaubten Werten und einer leeren Eingabe als Optionen zur Verfügung.
 
-![Vordefinierte Werte zu einem vordefinierten Schlüssel](./assets/predefined_values.png)
+Bei einer einfachen Property gelten keine weiteren Regeln.
 
-Die vordefinierten Schlüssel können auch in der Schlüsselübersicht mithilfe der jeweiligen Aktions-Buttons bearbeitet und gelöscht werden.
+![Anlegen eines Custom Properties mit Default-Wert](./assets/predefined_keys_default_value.png)
+
+#### Übersicht über alle vordefinierten Schlüssel
 
 ![Definition von Schlüsseln auf globaler Ebene](./assets/predefined_keys_globally.png)
+
+Die vordefinierten Schlüssel können auch in der Schlüsselübersicht mithilfe der jeweiligen Aktions-Buttons bearbeitet und gelöscht werden.
+In der Schlüsselübersicht wird ebenfalls angezeigt, ob für das jeweilige Custom Property ein Default- oder Pflichtwert definiert wurde.
+Falls das Custom Property einen Pflichtwert hat, dann wird mithilfe von Icons dargestellt, ob alle Repositories diesen Pflichtwert auch definiert haben.
+Sollte mindestens ein Repository fehlen, dann erhält der Benutzer ein Warn-Icon als Rückmeldung.
+Auf dieses Icon kann geklickt werden, um eine Übersicht über alle Repositories zu erhalten, für die der Pflichtwert noch definiert werden muss.
+
+![Überblick über alle Repositories für die ein Custom Property mit Pflichtwert definiert werden muss](./assets/repos_with_missing_mandatory_properties.png)
 
 ## Namespace-Konfiguration
 

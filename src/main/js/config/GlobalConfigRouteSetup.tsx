@@ -22,6 +22,7 @@ import GlobalConfiguration from "./GlobalConfiguration";
 import GlobalConfigurationEditor from "./GlobalConfigurationEditor";
 import { binder } from "@scm-manager/ui-extensions";
 import React from "react";
+import GlobalMissingProperties from "./GlobalMissingProperties";
 
 const globalConfigLink = "/admin/settings/custom-properties";
 const configLinkName = "customPropertiesConfig";
@@ -52,6 +53,11 @@ const GlobalConfigRoutes = ({ links }: { links: Links }) => {
       <Route
         path={`${globalConfigLink}/edit/:field/:selector?`}
         render={() => <GlobalConfigurationEditor link={(links[configLinkName] as Link).href} />}
+      />
+      {/*@ts-expect-error will be irrelevant with react 19 upgrade */}
+      <Route
+        path={`${globalConfigLink}/missing-mandatory-properties/:propertyKey`}
+        render={() => <GlobalMissingProperties />}
       />
     </>
   );

@@ -33,8 +33,14 @@
           "label": "Allowed values (optional)",
           "note": "Enter values (confirm each value by using the enter key), if you want to limit which values are allowed for this key."
         },
+        "mandatoryOrDefault": {
+          "label": "Custom Property Type",
+          "MANDATORY": "Mandatory Property. Each repository is required to define this custom property with a value.",
+          "DEFAULT": "Default Property. For each repository without this custom property, will be implied to have defined this custom property with the default value.",
+          "NONE": "Plain Property. No further rules will be applied to this custom property."
+        },
         "defaultValue": {
-          "label": "Default value (optional)"
+          "label": "Default value"
         },
         "predefinedKeys": {
           "title": "Custom Properties",
@@ -54,11 +60,21 @@
       "template": {
         "global": "Global Template",
         "namespace": "Namespace Template"
+      },
+      "missingMandatoryProperties": {
+        "title": "Repositories with missing mandatory property",
+        "paragraph": "The following repositories are missing the mandatory property '{{key}}'. Please create the mandatory property for each of those repositories.",
+        "notMissing": "No Repository is missing the property '{{key}}'",
+        "ariaLabelShowMissingRepos": "Show which repositories are missing the mandatory property '{{key}}'",
+        "ariaLabelNoMissingRepos": "No repository is missing the mandatory property '{{key}}'"
       }
     },
     "repository": {
       "subtitle": "Custom Repository Properties",
-      "api": "API Path"
+      "banner": {
+        "message": "This Repository is missing some mandatory properties",
+        "link": "Open Custom Properties"
+      }
     },
     "modal": {
       "deleteCustomProperty": {
@@ -79,6 +95,7 @@
       "subtitle_edit": "Edit custom property with key '{{key}}'",
       "predefinedValuesNote": "For this key, the possible values are predefined in the plugin configuration. Please choose one.",
       "defaultValueTag": "Default Value",
+      "mandatoryValueTag": "Mandatory Value",
       "key": {
         "label": "Key",
         "tooLong": "The maximum length of a key is 255 characters",
@@ -100,7 +117,9 @@
         "action": "Action",
         "setting": "Setting",
         "allowedValues": "Allowed Values",
-        "defaultValue": "Default Value"
+        "defaultValue": "Default or Mandatory Value",
+        "mandatoryValue": "Are Mandatory Values set",
+        "missingProperty": "Missing mandatory Properties"
       },
       "body": {
         "edit": "Edit entry with the key {{key}}",

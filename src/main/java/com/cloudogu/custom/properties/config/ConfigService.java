@@ -17,7 +17,6 @@
 package com.cloudogu.custom.properties.config;
 
 import jakarta.inject.Inject;
-import sonia.scm.repository.Repository;
 import sonia.scm.store.ConfigurationStore;
 import sonia.scm.store.ConfigurationStoreFactory;
 
@@ -82,12 +81,12 @@ public class ConfigService {
       .build();
   }
 
-  public Map<String, PredefinedKey> getAllPredefinedKeys(Repository repository) {
+  public Map<String, PredefinedKey> getAllPredefinedKeys(String namespace) {
     GlobalConfig globalConfig = getGlobalConfig();
     Map<String, PredefinedKey> result = new HashMap<>(globalConfig.getPredefinedKeys());
 
     if (globalConfig.isEnableNamespaceConfig()) {
-      result.putAll(getNamespaceConfig(repository.getNamespace()).getPredefinedKeys());
+      result.putAll(getNamespaceConfig(namespace).getPredefinedKeys());
     }
 
     return result;

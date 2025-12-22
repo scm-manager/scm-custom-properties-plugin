@@ -22,6 +22,7 @@ import { Route } from "react-router";
 import NamespaceConfiguration from "./NamespaceConfiguration";
 import NamespaceConfigurationEditor from "./NamespaceConfigurationEditor";
 import { binder } from "@scm-manager/ui-extensions";
+import NamespaceMissingProperties from "./NamespaceMissingProperties";
 
 const resolveNamespaceConfigLink = (namespace: string) => `/namespace/${namespace}/settings/custom-properties`;
 const configLinkName = "customPropertiesConfig";
@@ -59,6 +60,11 @@ const NamespaceConfigRoutes = ({ namespace }: { namespace: Namespace }) => {
         render={() => (
           <NamespaceConfigurationEditor link={(namespace._links[configLinkName] as Link).href} namespace={namespace} />
         )}
+      />
+      {/*@ts-expect-error will be irrelevant with react 19 upgrade */}
+      <Route
+        path={"/namespace/:namespace/settings/custom-properties/missing-mandatory-properties/:propertyKey"}
+        render={() => <NamespaceMissingProperties namespace={namespace} />}
       />
     </>
   );

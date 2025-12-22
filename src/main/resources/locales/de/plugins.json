@@ -33,8 +33,14 @@
           "label": "Erlaubte Werte (optional)",
           "note": "Tragen Sie hier Werte ein (jeweils mit Enter bestätigen), falls Sie für den jeweiligen Schlüssel einschränken wollen, welche Werte erlaubt sind."
         },
+        "mandatoryOrDefault": {
+          "label": "Custom Property Typ",
+          "MANDATORY": "Custom Property mit Pflichtwert. Jedes Repository ist verpflichtet, diese Custom Property mit einem Wert zu definieren.",
+          "DEFAULT": "Default-Property. Für jedes Repository, das dieses Custom Property nicht definiert hat, wird dieses Custom Property mit dem Default-Wert impliziert.",
+          "NONE": "Einfache Property. Für dieses Custom Property gelten keine weiteren Regeln."
+        },
         "defaultValue": {
-          "label": "Default-Wert (optional)"
+          "label": "Default-Wert"
         },
         "predefinedKeys": {
           "title": "Custom Properties",
@@ -54,11 +60,21 @@
       "template": {
         "global": "Globale Vorlage",
         "namespace": "Namespace Vorlage"
+      },
+      "missingMandatoryProperties": {
+        "title": "Repositories mit fehlenden Pflichtwerten",
+        "paragraph": "Die folgende Liste zeigt alle Repositories, für die das Custom Property '{{key}}' fehlt. Bitte erstellen Sie das fehlende Custom Property für jedes Repository.",
+        "notMissing": "Für kein Repository fehlt das Custom Property '{{key}}'",
+        "ariaLabelShowMissingRepos": "Zeige alle Repositories für die das Custom Property '{{key}}' noch fehlt",
+        "ariaLabelNoMissingRepos": "Alle Repositories haben das Custom Property '{{key}}' gesetzt."
       }
     },
     "repository": {
       "subtitle": "Custom Repository Properties",
-      "api": "API-Pfad"
+      "banner": {
+        "message": "In diesem Repository fehlen verpflichtenden Custom Properties",
+        "link": "Custom Properties öffnen"
+      }
     },
     "modal": {
       "deletePredefinedKey": {
@@ -79,6 +95,7 @@
       "predefinedValuesNote": "Für diesen Schlüssel wurden in der Plugin-Konfiguration mögliche Werte vordefiniert. Wählen Sie einen aus.",
       "subtitle_edit": "Custom Property mit dem Schlüssel \"{{key}}\" bearbeiten",
       "defaultValueTag": "Default-Wert",
+      "mandatoryValueTag": "Pflichtwert",
       "key": {
         "label": "Schlüssel",
         "tooLong": "Der Schlüssel überschreitet die maximale Länge von 255 Zeichen",
@@ -100,7 +117,9 @@
         "action": "Aktion",
         "setting": "Einstellung",
         "allowedValues": "Erlaubte Werte",
-        "defaultValue": "Default-Wert"
+        "defaultValue": "Default- oder Pflichtwert",
+        "mandatoryValue": "Pflichtwert gesetzt?",
+        "missingProperty": "Fehlende Pflichtwerte"
       },
       "body": {
         "edit": "Eintrag mit dem Schlüssel {{key}} bearbeiten",

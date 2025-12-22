@@ -64,7 +64,10 @@ class RepositoryEnricherTest {
   private RepositoryEnricher enricher;
 
   @Captor
-  private ArgumentCaptor<RepositoryEnricher.CustomPropertyCollection> captor;
+  private ArgumentCaptor<RepositoryEnricher.CustomPropertyCollection> customPropertiesCaptor;
+
+  @Captor
+  private ArgumentCaptor<RepositoryEnricher.MissingMandatoryPropertyCollection> missingMandatoryPropertiesCaptor;
 
   @BeforeEach
   void setUp() {
@@ -127,15 +130,15 @@ class RepositoryEnricherTest {
     when(context.oneRequireByType(Repository.class)).thenReturn(repository);
     when(customPropertiesService.get(repository)).thenReturn(
       List.of(
-        new CustomProperty("lang", "java", true),
-        new CustomProperty("published", "true", false)
+        new CustomProperty("lang", "java", true, false),
+        new CustomProperty("published", "true", false, false)
       )
     );
 
     enricher.enrich(context, appender);
 
-    verify(appender).appendEmbedded(eq("customProperties"), captor.capture());
-    RepositoryEnricher.CustomPropertyCollection embedded = captor.getValue();
+    verify(appender).appendEmbedded(eq("customProperties"), customPropertiesCaptor.capture());
+    RepositoryEnricher.CustomPropertyCollection embedded = customPropertiesCaptor.getValue();
     assertThat(embedded.getProperties()).isEqualTo(List.of(
       new CustomPropertyDto("lang", "java", true),
       new CustomPropertyDto("published", "true", false)
@@ -156,8 +159,8 @@ class RepositoryEnricherTest {
     when(context.oneRequireByType(Repository.class)).thenReturn(repository);
     when(customPropertiesService.get(repository)).thenReturn(
       List.of(
-        new CustomProperty("lang", "java", true),
-        new CustomProperty("published", "true", false)
+        new CustomProperty("lang", "java", true, false),
+        new CustomProperty("published", "true", false, false)
       )
     );
 
@@ -172,8 +175,8 @@ class RepositoryEnricherTest {
       .build()
     );
 
-    verify(appender).appendEmbedded(eq("customProperties"), captor.capture());
-    RepositoryEnricher.CustomPropertyCollection embedded = captor.getValue();
+    verify(appender).appendEmbedded(eq("customProperties"), customPropertiesCaptor.capture());
+    RepositoryEnricher.CustomPropertyCollection embedded = customPropertiesCaptor.getValue();
     assertThat(embedded.getProperties()).isEqualTo(List.of(
       expectedLangDto, expectedPublishedDto
     ));
@@ -183,5 +186,23 @@ class RepositoryEnricherTest {
       .single(link("create", "https://scm-test.de/scm/api/v2/custom-properties/hitchhiker/42Puzzle"))
       .build();
     assertThat(embedded.getLinks()).isEqualTo(expectedCollectionLinks);
+  }
+
+  @Test
+  @SubjectAware(permissions = {"repository:read:1337"})
+  void shouldEnrichWithMissingMandatoryPropertiesAsEmbedded() {
+    GlobalConfig enabledConfig = new GlobalConfig(true, true, Map.of());
+    when(configService.getGlobalConfig()).thenReturn(enabledConfig);
+    when(context.oneRequireByType(Repository.class)).thenReturn(repository);
+
+    when(customPropertiesService.getMissingMandatoryPropertiesForRepository(repository)).thenReturn(
+      List.of("Required", "Mandatory")
+    );
+
+    enricher.enrich(context, appender);
+
+    verify(appender).appendEmbedded(eq("missingMandatoryProperties"), missingMandatoryPropertiesCaptor.capture());
+    RepositoryEnricher.MissingMandatoryPropertyCollection embedded = missingMandatoryPropertiesCaptor.getValue();
+    assertThat(embedded.getMissing()).isEqualTo(List.of("Required", "Mandatory"));
   }
 }

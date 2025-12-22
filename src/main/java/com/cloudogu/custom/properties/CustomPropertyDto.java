@@ -29,6 +29,7 @@ import lombok.Setter;
 @EqualsAndHashCode(callSuper = true)
 public class CustomPropertyDto extends WriteCustomPropertyDto {
   private boolean isDefaultProperty;
+  private boolean isMandatory;
 
   public CustomPropertyDto(String key, String value, boolean isDefaultProperty) {
     super(key, value);

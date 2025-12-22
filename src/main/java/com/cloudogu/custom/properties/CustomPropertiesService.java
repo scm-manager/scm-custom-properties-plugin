@@ -18,17 +18,21 @@ package com.cloudogu.custom.properties;
 
 import com.cloudogu.custom.properties.config.ConfigService;
 import com.cloudogu.custom.properties.config.PredefinedKey;
-import com.google.common.base.Strings;
+import com.cloudogu.custom.properties.config.ValueMode;
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import sonia.scm.ContextEntry;
 import sonia.scm.NotFoundException;
 import sonia.scm.event.ScmEventBus;
 import sonia.scm.repository.Repository;
+import sonia.scm.repository.RepositoryManager;
 import sonia.scm.store.ConfigurationEntryStoreFactory;
 import sonia.scm.store.DataStore;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -43,36 +47,51 @@ public class CustomPropertiesService {
   private final ConfigurationEntryStoreFactory storeFactory;
   private final ConfigService configService;
   private final ScmEventBus eventBus;
+  private final RepositoryManager repositoryManager;
 
   @Inject
-  CustomPropertiesService(ConfigurationEntryStoreFactory storeFactory, ConfigService configService, ScmEventBus eventBus) {
+  CustomPropertiesService(ConfigurationEntryStoreFactory storeFactory, ConfigService configService, ScmEventBus eventBus, RepositoryManager repositoryManager) {
     this.storeFactory = storeFactory;
     this.configService = configService;
     this.eventBus = eventBus;
+    this.repositoryManager = repositoryManager;
   }
 
   Collection<CustomProperty> get(Repository repository) {
-    Collection<CustomProperty> existingProperties = createStore(repository).getAll().values();
-    Stream<CustomProperty> defaultProperties = configService.getAllPredefinedKeys(repository)
+    Map<String, PredefinedKey> predefinedKeys = configService.getAllPredefinedKeys(repository.getNamespace());
+    Collection<CustomProperty> existingProperties = createStore(repository)
+      .getAll()
+      .values()
+      .stream()
+      .map(
+        customProp -> new CustomProperty(customProp.getKey(), customProp.getValue(), false, isMandatoryKey(customProp.getKey(), predefinedKeys))
+      )
+      .toList();
+
+    Stream<CustomProperty> defaultProperties = predefinedKeys
       .entrySet()
       .stream()
       .filter(entry -> isDefaultProperty(entry.getValue()))
       .filter(entry -> isKeyUndefined(entry.getKey(), existingProperties))
-      .map(entry -> new CustomProperty(entry.getKey(), entry.getValue().getDefaultValue(), true));
+      .map(entry -> new CustomProperty(entry.getKey(), entry.getValue().getDefaultValue(), true, false));
 
     return Stream.concat(existingProperties.stream(), defaultProperties).sorted().toList();
   }
 
+  private boolean isMandatoryKey(String key, Map<String, PredefinedKey> predefinedKeys) {
+    return predefinedKeys.containsKey(key) && predefinedKeys.get(key).getMode() == ValueMode.MANDATORY;
+  }
+
   private boolean isDefaultProperty(PredefinedKey predefinedKey) {
-    return !Strings.isNullOrEmpty(predefinedKey.getDefaultValue());
+    return predefinedKey.getMode() == ValueMode.DEFAULT;
   }
 
   private boolean isKeyUndefined(String key, Collection<CustomProperty> existingProperties) {
     return existingProperties.stream().noneMatch(property -> property.getKey().equals(key));
   }
 
-  Map<String, PredefinedKey> getFilteredPredefinedKeys(Repository repository, String filter) {
-    Map<String, PredefinedKey> predefinedKeys = configService.getAllPredefinedKeys(repository);
+  Map<String, PredefinedKey> getFilteredPredefinedKeys(String namespace, String filter) {
+    Map<String, PredefinedKey> predefinedKeys = configService.getAllPredefinedKeys(namespace);
 
     if (filter == null || filter.isEmpty()) {
       return predefinedKeys;
@@ -81,6 +100,45 @@ public class CustomPropertiesService {
     String lowerCasedFilter = filter.toLowerCase();
     return predefinedKeys.entrySet().stream()
       .filter(entry -> entry.getKey().toLowerCase().contains(lowerCasedFilter))
+      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  Map<String, Collection<Repository>> getMissingMandatoryProperties() {
+    return getMissingMandatoryPropertiesForRepositoryCollection(repositoryManager.getAll());
+  }
+
+  Map<String, Collection<Repository>> getMissingMandatoryPropertiesForNamespace(String namespace) {
+    return getMissingMandatoryPropertiesForRepositoryCollection(
+      repositoryManager.getAll(repository -> repository.getNamespace().equals(namespace))
+    );
+  }
+
+  Collection<String> getMissingMandatoryPropertiesForRepository(Repository repository) {
+    return getMissingMandatoryPropertiesForRepositoryCollection(List.of(repository)).keySet();
+  }
+
+  private Map<String, Collection<Repository>> getMissingMandatoryPropertiesForRepositoryCollection(Collection<Repository> allRepositories) {
+    Map<String, Collection<Repository>> result = new HashMap<>();
+    Map<String, Map<String, PredefinedKey>> predefinedKeysCacheForNamespace = new HashMap<>();
+
+    allRepositories.forEach(repository -> {
+      Map<String, CustomProperty> definedKeysInRepository = createStore(repository).getAll();
+      predefinedKeysCacheForNamespace
+        .computeIfAbsent(repository.getNamespace(), this::getMandatoryKeys)
+        .keySet()
+        .stream()
+        .filter(s -> !definedKeysInRepository.containsKey(s))
+        .forEach(missingKey -> result.computeIfAbsent(missingKey, key -> new ArrayList<>()).add(repository));
+    });
+
+    return result;
+  }
+
+  private Map<String, PredefinedKey> getMandatoryKeys(String namespace) {
+    return configService.getAllPredefinedKeys(namespace)
+      .entrySet()
+      .stream()
+      .filter(entry -> entry.getValue().getMode() == ValueMode.MANDATORY)
       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
@@ -98,7 +156,7 @@ public class CustomPropertiesService {
   }
 
   private void validateValue(Repository repository, CustomProperty entity) {
-    PredefinedKey predefinedKey = configService.getAllPredefinedKeys(repository).get(entity.getKey());
+    PredefinedKey predefinedKey = configService.getAllPredefinedKeys(repository.getNamespace()).get(entity.getKey());
     if (predefinedKey != null && !predefinedKey.isValueValid(entity.getValue())) {
       throw new InvalidValueException(repository, entity);
     }
