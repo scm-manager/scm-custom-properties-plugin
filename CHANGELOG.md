@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.4.0 - 2026-01-20
+### Added
+- Possibility to defined predefined keys as mandatory for each repository
+
+### Fixed
+- Unnecessary repository permission removed
+
 ## 1.3.0 - 2025-12-03
 ### Added
 - Default value for predefined keys, which are used for each repository, that does not define the key itself
