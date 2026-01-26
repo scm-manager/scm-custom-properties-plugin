@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import sonia.scm.api.v2.resources.RepositoryLinkProvider;
 import sonia.scm.event.ScmEventBus;
 import sonia.scm.repository.Repository;
 import sonia.scm.repository.RepositoryManager;
@@ -58,6 +59,7 @@ import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 @ExtendWith({MockitoExtension.class, ShiroExtension.class})
 class CustomPropertiesResourceTest {
@@ -96,17 +98,28 @@ class CustomPropertiesResourceTest {
   private ConfigService configService;
   @Mock
   private RepositoryManager repositoryManager;
+  @Mock
+  private CustomPropertiesSearchService searchService;
+  @Mock
+  private RepositoryLinkProvider repositoryLinkProvider;
 
   @BeforeEach
   void setUp() {
     repository = RepositoryTestData.createHeartOfGold("git");
-    this.configService = new ConfigService(new InMemoryByteConfigurationStoreFactory());
+    configService = new ConfigService(new InMemoryByteConfigurationStoreFactory());
+
+    RepositoryMapper repositoryMapper = new RepositoryMapperImpl();
+    repositoryMapper.setRepositoryLinkProvider(repositoryLinkProvider);
+    repositoryMapper.setCustomPropertyMapper(customPropertyMapper);
+
     CustomPropertiesResource resource = new CustomPropertiesResource(
       repositoryManager,
       new CustomPropertiesService(storeFactory, configService, eventBus, repositoryManager),
       configService,
       customPropertyMapper,
-      new PredefinedKeyMapperImpl()
+      new PredefinedKeyMapperImpl(),
+      repositoryMapper,
+      searchService
     );
 
     dispatcher = new RestDispatcher();
@@ -780,6 +793,163 @@ class CustomPropertiesResourceTest {
       dispatcher.invoke(request, response);
 
       assertThat(response.getStatus()).isEqualTo(FORBIDDEN.getStatusCode());
+    }
+  }
+
+  @Nested
+  class FindRepositoriesWithCustomProperties {
+
+    @Test
+    @SubjectAware(value = "Trainer Red")
+    void shouldReturnForbiddenBecauseFeatureIsDisabled() throws URISyntaxException {
+      GlobalConfig disabledGlobalConfig = new GlobalConfig();
+      disabledGlobalConfig.setEnabled(false);
+      configService.setGlobalConfig(disabledGlobalConfig);
+
+      MockHttpRequest request = MockHttpRequest.get("/v2/custom-properties/repositories");
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(FORBIDDEN.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "Trainer Red")
+    void shouldReturnBadRequestBecausePropertyIsNotInProperFormat() throws URISyntaxException {
+      MockHttpRequest request = MockHttpRequest.get("/v2/custom-properties/repositories?property=key;value");
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(BAD_REQUEST.getStatusCode());
+    }
+
+    @Test
+    @SubjectAware(value = "Trainer Red")
+    void shouldPassFilterToService() throws URISyntaxException {
+      GlobalConfig enabledConfig = new GlobalConfig();
+      enabledConfig.setEnabled(true);
+      configService.setGlobalConfig(enabledConfig);
+
+      CustomPropertiesSearchService.Filter expectedFilter = new CustomPropertiesSearchService.Filter(
+        "lang", "java", "lang=java", true
+      );
+      String expectedSelfLink = String.format("/scm/api/v2/repositories/%s/%s", repository.getNamespace(), repository.getName());
+
+      when(searchService.findRepositoriesWithCustomProperties(expectedFilter)).thenReturn(
+        List.of(new CustomPropertiesSearchService.RepositoryWithProps(repository, List.of()))
+      );
+      when(repositoryLinkProvider.get(repository.getNamespaceAndName())).thenReturn(expectedSelfLink);
+
+      MockHttpRequest request = MockHttpRequest.get(
+        "/v2/custom-properties/repositories?key=lang&key=timeout&value=java&value=1000&property=lang%3Djava&property=timeout%3D1000&excludeArchived=true"
+      );
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      JsonNode responseBody = response.getContentAsJson();
+
+      assertThat(responseBody.isArray()).isTrue();
+      assertThat(responseBody.size()).isEqualTo(1);
+      assertThat(responseBody.get(0).get("namespace").asText()).isEqualTo(repository.getNamespace());
+      assertThat(responseBody.get(0).get("name").asText()).isEqualTo(repository.getName());
+      assertThat(responseBody.get(0).get("type").asText()).isEqualTo(repository.getType());
+      assertThat(responseBody.get(0).get("description").asText()).isEqualTo(repository.getDescription());
+      assertThat(responseBody.get(0).get("contact").asText()).isEqualTo(repository.getContact());
+      assertThat(responseBody.get(0).get("archived").asBoolean()).isEqualTo(repository.isArchived());
+      assertThat(responseBody.get(0).get("_links").get("self").get("href").asText()).isEqualTo(expectedSelfLink);
+      assertThat(responseBody.get(0).get("_embedded")).isNull();
+    }
+
+    @Test
+    @SubjectAware(value = "Trainer Red")
+    void shouldUseDefaultExcludeArchiveAsFalse() throws URISyntaxException {
+      GlobalConfig enabledConfig = new GlobalConfig();
+      enabledConfig.setEnabled(true);
+      configService.setGlobalConfig(enabledConfig);
+
+      CustomPropertiesSearchService.Filter expectedFilter = new CustomPropertiesSearchService.Filter(
+        null, null, null, false
+      );
+      String expectedSelfLink = String.format("/scm/api/v2/repositories/%s/%s", repository.getNamespace(), repository.getName());
+
+      when(searchService.findRepositoriesWithCustomProperties(expectedFilter)).thenReturn(
+        List.of(new CustomPropertiesSearchService.RepositoryWithProps(repository, List.of()))
+      );
+      when(repositoryLinkProvider.get(repository.getNamespaceAndName())).thenReturn(expectedSelfLink);
+
+      MockHttpRequest request = MockHttpRequest.get(
+        "/v2/custom-properties/repositories"
+      );
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      JsonNode responseBody = response.getContentAsJson();
+      assertThat(responseBody.isArray()).isTrue();
+      assertThat(responseBody.size()).isEqualTo(1);
+      assertThat(responseBody.get(0).get("namespace").asText()).isEqualTo(repository.getNamespace());
+      assertThat(responseBody.get(0).get("name").asText()).isEqualTo(repository.getName());
+      assertThat(responseBody.get(0).get("type").asText()).isEqualTo(repository.getType());
+      assertThat(responseBody.get(0).get("description").asText()).isEqualTo(repository.getDescription());
+      assertThat(responseBody.get(0).get("contact").asText()).isEqualTo(repository.getContact());
+      assertThat(responseBody.get(0).get("archived").asBoolean()).isEqualTo(repository.isArchived());
+      assertThat(responseBody.get(0).get("_links").get("self").get("href").asText()).isEqualTo(expectedSelfLink);
+      assertThat(responseBody.get(0).get("_embedded")).isNull();
+    }
+
+    @Test
+    @SubjectAware(value = "Trainer Red")
+    void shouldIncludeCustomPropsForResult() throws URISyntaxException {
+      GlobalConfig enabledConfig = new GlobalConfig();
+      enabledConfig.setEnabled(true);
+      configService.setGlobalConfig(enabledConfig);
+
+      CustomPropertiesSearchService.Filter expectedFilter = new CustomPropertiesSearchService.Filter(
+        null, null, null, false
+      );
+      String expectedSelfLink = String.format("/scm/api/v2/repositories/%s/%s", repository.getNamespace(), repository.getName());
+      CustomProperty expectedCustomProperty = new CustomProperty("lang", "java");
+
+      when(searchService.findRepositoriesWithCustomProperties(expectedFilter)).thenReturn(
+        List.of(new CustomPropertiesSearchService.RepositoryWithProps(repository, List.of(expectedCustomProperty)))
+      );
+      when(repositoryLinkProvider.get(repository.getNamespaceAndName())).thenReturn(expectedSelfLink);
+
+      MockHttpRequest request = MockHttpRequest.get(
+        "/v2/custom-properties/repositories?includeProps=true"
+      );
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      JsonNode responseBody = response.getContentAsJson();
+      assertThat(responseBody.isArray()).isTrue();
+      assertThat(responseBody.size()).isEqualTo(1);
+      assertThat(responseBody.get(0).get("namespace").asText()).isEqualTo(repository.getNamespace());
+      assertThat(responseBody.get(0).get("name").asText()).isEqualTo(repository.getName());
+      assertThat(responseBody.get(0).get("type").asText()).isEqualTo(repository.getType());
+      assertThat(responseBody.get(0).get("description").asText()).isEqualTo(repository.getDescription());
+      assertThat(responseBody.get(0).get("contact").asText()).isEqualTo(repository.getContact());
+      assertThat(responseBody.get(0).get("archived").asBoolean()).isEqualTo(repository.isArchived());
+
+      assertThat(responseBody.get(0).get("_embedded").get("customProperties").isArray()).isTrue();
+      assertThat(responseBody.get(0).get("_embedded").get("customProperties").size()).isEqualTo(1);
+      assertThat(responseBody.get(0).get("_embedded").get("customProperties").get(0).get("key").asText())
+        .isEqualTo(expectedCustomProperty.getKey());
+      assertThat(responseBody.get(0).get("_embedded").get("customProperties").get(0).get("value").asText())
+        .isEqualTo(expectedCustomProperty.getValue());
+      assertThat(responseBody.get(0).get("_embedded").get("customProperties").get(0).get("defaultProperty").asBoolean())
+        .isEqualTo(expectedCustomProperty.isDefaultProperty());
+      assertThat(responseBody.get(0).get("_embedded").get("customProperties").get(0).get("mandatory").asBoolean())
+        .isEqualTo(expectedCustomProperty.isMandatory());
+
+      assertThat(responseBody.get(0).get("_links").get("self").get("href").asText()).isEqualTo(expectedSelfLink);
     }
   }
 }

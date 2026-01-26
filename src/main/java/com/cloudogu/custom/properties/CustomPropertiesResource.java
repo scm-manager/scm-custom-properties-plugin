@@ -28,6 +28,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -66,18 +67,24 @@ public class CustomPropertiesResource {
   private final ConfigService configService;
   private final CustomPropertyMapper customPropertyMapper;
   private final PredefinedKeyMapper predefinedKeyMapper;
+  private final RepositoryMapper repositoryMapper;
+  private final CustomPropertiesSearchService searchService;
 
   @Inject
   public CustomPropertiesResource(RepositoryManager repositoryManager,
                                   CustomPropertiesService service,
                                   ConfigService configService,
                                   CustomPropertyMapper customPropertyMapper,
-                                  PredefinedKeyMapper predefinedKeyMapper) {
+                                  PredefinedKeyMapper predefinedKeyMapper,
+                                  RepositoryMapper repositoryMapper,
+                                  CustomPropertiesSearchService searchService) {
     this.repositoryManager = repositoryManager;
     this.service = service;
     this.configService = configService;
     this.customPropertyMapper = customPropertyMapper;
     this.predefinedKeyMapper = predefinedKeyMapper;
+    this.repositoryMapper = repositoryMapper;
+    this.searchService = searchService;
   }
 
   @GET
@@ -233,6 +240,45 @@ public class CustomPropertiesResource {
     RepositoryPermissions.modify(repository).check();
 
     service.delete(repository, key);
+  }
+
+  @Operation(
+    summary = "Filters repositories that match filters applied to their custom properties",
+    description = "Returns a list of repositories, if it contains custom properties that matches all the supplied filters.",
+    tags = "Custom Properties",
+    operationId = "custom-properties_find_repositories_with_custom_properties"
+  )
+  @ApiResponse(responseCode = "200", description = "success")
+  @ApiResponse(responseCode = "401", description = "not authenticated / invalid credentials")
+  @ApiResponse(responseCode = "403", description = "not authorized, the current user does not have the general repository write privilege, or plugin deactivated")
+  @ApiResponse(
+    responseCode = "500",
+    description = "internal server error",
+    content = @Content(
+      mediaType = VndMediaType.ERROR_TYPE,
+      schema = @Schema(implementation = ErrorDto.class)
+    )
+  )
+  @GET
+  @Produces(MediaType.APPLICATION_JSON)
+  @Path("/repositories")
+  public Collection<BasicRepositoryDto> findRepositoriesWithCustomProperties(@QueryParam("key") String key,
+                                                                             @QueryParam("value") String value,
+                                                                             @QueryParam("property") @Pattern(regexp = ".+=.+", message = "Property must match the format <key>=<value>") String property,
+                                                                             @QueryParam("excludeArchived") boolean excludeArchived,
+                                                                             @QueryParam("includeProps") boolean includeProps) {
+    checkIsFeatureEnabled();
+
+    CustomPropertiesSearchService.Filter filter = new CustomPropertiesSearchService.Filter(
+      key, value, property, excludeArchived
+    );
+
+    return searchService.findRepositoriesWithCustomProperties(filter)
+      .stream()
+      .map(
+        repoWithProps -> repositoryMapper.map(repoWithProps.repository(), repoWithProps.props(), includeProps)
+      )
+      .toList();
   }
 
   private void checkIsFeatureEnabled() {

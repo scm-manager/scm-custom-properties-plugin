@@ -31,11 +31,14 @@ import sonia.scm.repository.Repository;
 import sonia.scm.repository.RepositoryPermissions;
 
 import java.util.Collection;
+import java.util.List;
 
 import static de.otto.edison.hal.Link.link;
 
 @Mapper
 public abstract class CustomPropertyMapper {
+
+  private static final ThreadLocal<Boolean> WRITE_PERMISSION = new ThreadLocal<>();
 
   @Inject
   private Provider<ScmPathInfoStore> scmPathInfoStore;
@@ -49,15 +52,27 @@ public abstract class CustomPropertyMapper {
   public abstract CustomPropertyDto map(CustomProperty customProperty, @Context Repository repository);
   public abstract CustomProperty map(CustomPropertyDto customPropertyDto);
   @Mapping(target = "defaultProperty", ignore = true)
+  @Mapping(target = "mandatory", ignore = true)
   public abstract CustomProperty map(WriteCustomPropertyDto customPropertyDto);
 
-  public Collection<CustomPropertyDto> mapToDtoCollection(Collection<CustomProperty> customProperties, Repository repository) {
-    return customProperties.stream().map(customProperty -> this.map(customProperty, repository)).toList();
+  public List<CustomPropertyDto> mapToDtoCollection(Collection<CustomProperty> customProperties, Repository repository) {
+    boolean hasWritePermission = RepositoryPermissions.modify(repository).isPermitted();
+    WRITE_PERMISSION.set(hasWritePermission);
+
+    try {
+      return customProperties.stream().map(customProperty -> this.map(customProperty, repository)).toList();
+    } finally {
+      WRITE_PERMISSION.remove();
+    }
   }
 
   @AfterMapping
   void appendLinks(@MappingTarget CustomPropertyDto customPropertyDto, @Context Repository repository) {
-    if (!RepositoryPermissions.modify(repository).isPermitted()) {
+    if (WRITE_PERMISSION.get() != null) {
+      if (!WRITE_PERMISSION.get()) {
+        return;
+      }
+    } else if (!RepositoryPermissions.modify(repository).isPermitted()) {
       return;
     }
 
