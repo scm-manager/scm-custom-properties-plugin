@@ -25,6 +25,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.Locale;
 
 @Data
 @NoArgsConstructor
@@ -52,6 +53,14 @@ public class CustomProperty implements Comparable<CustomProperty>, Serializable 
 
   public CustomProperty(String key, String value) {
     this(key, value, false, false);
+  }
+
+  public String loweredKey() {
+    return key.toLowerCase(Locale.ENGLISH);
+  }
+
+  public String loweredValue() {
+    return value.toLowerCase(Locale.ENGLISH);
   }
 
   @Override

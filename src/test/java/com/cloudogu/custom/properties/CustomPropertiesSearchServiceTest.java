@@ -43,7 +43,7 @@ class CustomPropertiesSearchServiceTest {
     javaLangProp, javaPendingReleaseProp, javaVersionProp, javaTimeoutProp
   );
   private final Repository goRepo = RepositoryTestData.create42Puzzle();
-  private final CustomProperty goLangProp = new CustomProperty("lang", "go");
+  private final CustomProperty goLangProp = new CustomProperty("Lang", "Go");
   private final CustomProperty goSonarAnalysisProp = new CustomProperty("sonar_analysis", "true");
   private final CustomProperty goVersionProp = new CustomProperty("version", "2.0.0");
   private final CustomProperty goTimeoutProp = new CustomProperty("timeout", "1000");
@@ -208,6 +208,16 @@ class CustomPropertiesSearchServiceTest {
       new CustomPropertiesSearchService.Filter("vers*ion", "java*", "*ending*re*=*", false)
     );
     assertThat(secondResult).isEqualTo(List.of(
+      new CustomPropertiesSearchService.RepositoryWithProps(javaRepo, javaRepoProps)
+    ));
+  }
+
+  @Test
+  void shouldMatchRepositoriesCaseInsensitive() {
+    Collection<CustomPropertiesSearchService.RepositoryWithProps> firstResult = searchService.findRepositoriesWithCustomProperties(
+      new CustomPropertiesSearchService.Filter("LA*NG", "*JaVa", "l?ng=Java", false)
+    );
+    assertThat(firstResult).isEqualTo(List.of(
       new CustomPropertiesSearchService.RepositoryWithProps(javaRepo, javaRepoProps)
     ));
   }

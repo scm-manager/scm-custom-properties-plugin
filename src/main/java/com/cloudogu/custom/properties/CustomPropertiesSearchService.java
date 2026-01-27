@@ -16,6 +16,7 @@
 
 package com.cloudogu.custom.properties;
 
+import java.util.Locale;
 import java.util.function.Predicate;
 import com.google.common.base.Strings;
 import jakarta.inject.Inject;
@@ -66,20 +67,13 @@ public class CustomPropertiesSearchService {
     }
 
     boolean keyMatches = !filter.hasKeyFilter();
-    Predicate<CustomProperty> keyFilter = filter.hasKeyFilter() ?
-      property -> GlobUtil.matches(filter.key, property.getKey()) :
-      property -> false;
+    Predicate<CustomProperty> keyFilter = filter.getKeyFilter();
 
     boolean valueMatches = !filter.hasValueFilter();
-    Predicate<CustomProperty> valueFilter = filter.hasValueFilter() ?
-      property -> GlobUtil.matches(filter.value, property.getValue()) :
-      property -> false;
+    Predicate<CustomProperty> valueFilter = filter.getValueFilter();
 
     boolean keyValuePairMatches = !filter.hasKeyValueFilter();
-    String[] keyValuePair = filter.hasKeyValueFilter() ? filter.splitKeyValuePair() : null;
-    Predicate<CustomProperty> keyValuePairFilter = filter.hasKeyValueFilter() ?
-      property -> GlobUtil.matches(keyValuePair[0], property.getKey()) && GlobUtil.matches(keyValuePair[1], property.getValue()) :
-      property -> false;
+    Predicate<CustomProperty> keyValuePairFilter = filter.getKeyValueFilter();
 
     for (CustomProperty property : repositoryWithProps.props) {
       if (keyFilter.test(property)) {
@@ -99,7 +93,6 @@ public class CustomPropertiesSearchService {
   }
 
   record Filter(String key, String value, String keyValuePair, boolean excludeArchived) {
-
     boolean hasNoCustomPropertyFilter() {
       return Strings.isNullOrEmpty(key) && Strings.isNullOrEmpty(value) && Strings.isNullOrEmpty(keyValuePair);
     }
@@ -108,16 +101,37 @@ public class CustomPropertiesSearchService {
       return !Strings.isNullOrEmpty(key);
     }
 
+    Predicate<CustomProperty> getKeyFilter() {
+      if (hasKeyFilter()) {
+        String loweredKey = key.toLowerCase(Locale.ENGLISH);
+        return property -> GlobUtil.matches(loweredKey, property.loweredKey());
+      }
+      return property -> false;
+    }
+
     boolean hasValueFilter() {
       return !Strings.isNullOrEmpty(value);
+    }
+
+    Predicate<CustomProperty> getValueFilter() {
+      if (hasValueFilter()) {
+        String loweredValue = value.toLowerCase(Locale.ENGLISH);
+        return property -> GlobUtil.matches(loweredValue, property.loweredValue());
+      }
+      return property -> false;
     }
 
     boolean hasKeyValueFilter() {
       return !Strings.isNullOrEmpty(keyValuePair);
     }
 
-    String[] splitKeyValuePair() {
-      return keyValuePair.split("=", 2);
+    Predicate<CustomProperty> getKeyValueFilter() {
+      if (hasKeyValueFilter()) {
+        String[] loweredKeyValue = keyValuePair.toLowerCase(Locale.ENGLISH).split("=", 2);
+        return property -> GlobUtil.matches(loweredKeyValue[0], property.loweredKey()) &&
+          GlobUtil.matches(loweredKeyValue[1], property.loweredValue());
+      }
+      return property -> false;
     }
   }
 
