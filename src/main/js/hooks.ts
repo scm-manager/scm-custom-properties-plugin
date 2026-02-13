@@ -87,7 +87,7 @@ export const useMissingMandatoryPropertiesForNamespace = (namespace: Namespace) 
 
 const requiredLink = (halObject: HalRepresentation | undefined, linkName: string): string => {
   if (!halObject?._links || !halObject?._links[linkName]) {
-    throw new Error("You are missing the needed permissions");
+    throw new Error(`You are missing the needed permissions/links '${linkName}'`);
   }
   return (halObject._links[linkName] as Link).href;
 };

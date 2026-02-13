@@ -23,7 +23,7 @@ export type CustomProperty = {
   mandatory?: boolean;
 } & HalRepresentation;
 
-export const valueModes = ["NONE", "DEFAULT", "MANDATORY"] as const;
+export const valueModes = ["NONE", "DEFAULT", "MANDATORY", "MULTIPLE_CHOICE"] as const;
 export type ValueMode = (typeof valueModes)[number];
 
 export type SinglePredefinedKey = {

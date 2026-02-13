@@ -30,7 +30,7 @@ import java.io.Serializable;
 @IndexedType(repositoryScoped = true, namespaceScoped = true)
 public class IndexedCustomProperty implements Comparable<CustomProperty>, Serializable {
 
-  static final int VERSION = 1;
+  static final int VERSION = 2;
 
   @Indexed(type = Indexed.Type.SEARCHABLE, defaultQuery = true)
   private String key;

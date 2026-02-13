@@ -25,4 +25,5 @@ public class CustomPropertiesContext {
   public static final String MISSING_MANDATORY_PROPERTIES_LINK_NAME = "missingMandatoryProperties";
   public static final String CONFIG_PERMISSION_NAME = "customProperties";
   public static final String CONFIG_LINK_NAME = "customPropertiesConfig";
+  public static final String MULTIPLE_CHOICE_VALUE_SEPARATOR = "\t";
 }

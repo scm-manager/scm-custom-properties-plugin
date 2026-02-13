@@ -21,8 +21,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -41,9 +41,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -68,18 +65,51 @@ class CustomPropertiesIndexerTest {
   @InjectMocks
   private CustomPropertiesIndexer indexer;
 
+  @Captor
+  private ArgumentCaptor<SerializableIndexTask<IndexedCustomProperty>> captor;
+
   @BeforeEach
   void setup() {
     lenient().when(searchEngine.forType(IndexedCustomProperty.class)).thenReturn(forType);
+    lenient().when(index.delete()).thenReturn(deleter);
+  }
+
+  private Id<IndexedCustomProperty> buildIdString(String key, String value, Repository repository) {
+    return Id.of(IndexedCustomProperty.class, String.format("%s=%s", key, value)).and(repository);
+  }
+
+  private void verifyIndexStore(String storedKey, String storedValue, Repository storedForRepository) {
+    verify(index).store(
+      buildIdString(storedKey, storedValue, storedForRepository),
+      String.format("repository:read:%s", storedForRepository.getId()),
+      new IndexedCustomProperty(storedKey, storedValue)
+    );
+  }
+
+  private void verifyIndexDelete(String deletedKey, String deletedValue, Repository deletedForRepository) {
+    verify(deleter).byId(
+      buildIdString(deletedKey, deletedValue, deletedForRepository)
+    );
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void shouldIndexCustomPropertyForCreateEvent() {
     CustomPropertyCreateEvent event = new CustomPropertyCreateEvent(repository, customProperty);
 
-    ArgumentCaptor<SerializableIndexTask<IndexedCustomProperty>> captor =
-      ArgumentCaptor.forClass(SerializableIndexTask.class);
+    indexer.handleEvent(event);
+
+    verify(forType, times(1)).update(captor.capture());
+
+    SerializableIndexTask<IndexedCustomProperty> task = captor.getValue();
+    task.update(index);
+
+    verifyIndexStore(customProperty.getKey(), customProperty.getValue(), repository);
+  }
+
+  @Test
+  void shouldIndexCustomPropertyForCreateEventWithMultipleChoiceValue() {
+    CustomProperty multipleChoiceProperty = new CustomProperty("multiple", "a\tb\tc");
+    CustomPropertyCreateEvent event = new CustomPropertyCreateEvent(repository, multipleChoiceProperty);
 
     indexer.handleEvent(event);
 
@@ -88,100 +118,114 @@ class CustomPropertiesIndexerTest {
     SerializableIndexTask<IndexedCustomProperty> task = captor.getValue();
     task.update(index);
 
-    verify(index, times(1)).store(
-      argThat(id ->
-        id.toString().contains(customProperty.getClass().getSimpleName()) &&
-          id.toString().contains(customProperty.getKey()) &&
-          id.toString().contains(repository.getId())
-      ),
-      anyString(),
-      eq(new IndexedCustomProperty(customProperty))
-    );
+    verifyIndexStore(multipleChoiceProperty.getKey(), "a", repository);
+    verifyIndexStore(multipleChoiceProperty.getKey(), "b", repository);
+    verifyIndexStore(multipleChoiceProperty.getKey(), "c", repository);
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void shouldIndexCustomPropertyForUpdateEventWithDifferentValue() {
     CustomPropertyUpdateEvent event = new CustomPropertyUpdateEvent(
-      repository, customProperty, new CustomProperty(customProperty.getKey(), "OtherValue")
+      repository, new CustomProperty(customProperty.getKey(), "OtherValue"), customProperty
     );
-
-    ArgumentCaptor<SerializableIndexTask<IndexedCustomProperty>> captor =
-      ArgumentCaptor.forClass(SerializableIndexTask.class);
-
-    indexer.handleEvent(event);
-    verify(forType, times(1)).update(captor.capture());
-
-    SerializableIndexTask<IndexedCustomProperty> task = captor.getValue();
-    task.update(index);
-
-    verify(index, times(1)).store(
-      argThat(id ->
-        id.toString().contains(customProperty.getClass().getSimpleName()) &&
-          id.toString().contains(customProperty.getKey()) &&
-          id.toString().contains(repository.getId())
-      ),
-      anyString(),
-      eq(new IndexedCustomProperty(customProperty))
-    );
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  void shouldIndexCustomPropertyForUpdateEventWithDifferentKey() {
-    CustomPropertyUpdateEvent event = new CustomPropertyUpdateEvent(
-      repository, customProperty, new CustomProperty("OtherKey", customProperty.getValue())
-    );
-    when(index.delete()).thenReturn(deleter);
-    ArgumentCaptor<SerializableIndexTask<IndexedCustomProperty>> captor =
-      ArgumentCaptor.forClass(SerializableIndexTask.class);
 
     indexer.handleEvent(event);
     verify(forType, times(2)).update(captor.capture());
 
     captor.getAllValues().forEach(task -> task.update(index));
 
-    verify(index, times(1)).store(
-      argThat(id ->
-        id.toString().contains(customProperty.getClass().getSimpleName()) &&
-          id.toString().contains(customProperty.getKey()) &&
-          id.toString().contains(repository.getId())
-      ),
-      anyString(),
-      eq(new IndexedCustomProperty(customProperty))
-    );
-
-    verify(index, times(1)).delete();
-
-    Id<IndexedCustomProperty> expectedId =
-      Id.of(IndexedCustomProperty.class, "OtherKey")
-        .and(Repository.class, repository);
-    verify(deleter, times(1)).byId(expectedId);
+    verifyIndexDelete(customProperty.getKey(), customProperty.getValue(), repository);
+    verifyIndexStore(customProperty.getKey(), "OtherValue", repository);
   }
 
   @Test
-  @SuppressWarnings("unchecked")
+  void shouldIndexMultipleChoicePropertyForUpdateEventWithDifferentValue() {
+    CustomProperty oldProp = new CustomProperty("key", "a\tb\tc");
+    CustomProperty newProp = new CustomProperty("key", "c\td\te");
+
+    CustomPropertyUpdateEvent event = new CustomPropertyUpdateEvent(
+      repository, newProp, oldProp
+    );
+
+    indexer.handleEvent(event);
+    verify(forType, times(2)).update(captor.capture());
+
+    captor.getAllValues().forEach(task -> task.update(index));
+
+    verifyIndexDelete(oldProp.getKey(), "a", repository);
+    verifyIndexDelete(oldProp.getKey(), "b", repository);
+    verifyIndexDelete(oldProp.getKey(), "c", repository);
+
+    verifyIndexStore(newProp.getKey(), "c", repository);
+    verifyIndexStore(newProp.getKey(), "d", repository);
+    verifyIndexStore(newProp.getKey(), "e", repository);
+  }
+
+  @Test
+  void shouldIndexCustomPropertyForUpdateEventWithDifferentKey() {
+    CustomPropertyUpdateEvent event = new CustomPropertyUpdateEvent(
+      repository, new CustomProperty("OtherKey", customProperty.getValue()), customProperty
+    );
+
+    indexer.handleEvent(event);
+    verify(forType, times(2)).update(captor.capture());
+
+    captor.getAllValues().forEach(task -> task.update(index));
+
+    verifyIndexDelete(customProperty.getKey(), customProperty.getValue(), repository);
+    verifyIndexStore("OtherKey", customProperty.getValue(), repository);
+  }
+
+  @Test
+  void shouldIndexMultipleChoicePropertyForUpdateEventWithDifferentKey() {
+    CustomProperty oldProp = new CustomProperty("key", "a\tb\tc");
+    CustomProperty newProp = new CustomProperty("otherKey", "a\tb\tc");
+
+    CustomPropertyUpdateEvent event = new CustomPropertyUpdateEvent(
+      repository, newProp, oldProp
+    );
+
+    indexer.handleEvent(event);
+    verify(forType, times(2)).update(captor.capture());
+
+    captor.getAllValues().forEach(task -> task.update(index));
+
+    verifyIndexDelete(oldProp.getKey(), "a", repository);
+    verifyIndexDelete(oldProp.getKey(), "b", repository);
+    verifyIndexDelete(oldProp.getKey(), "c", repository);
+
+    verifyIndexStore(newProp.getKey(), "a", repository);
+    verifyIndexStore(newProp.getKey(), "b", repository);
+    verifyIndexStore(newProp.getKey(), "c", repository);
+  }
+
+  @Test
   void shouldDeleteCustomPropertyForDeleteEvent() {
     CustomPropertyDeleteEvent event = new CustomPropertyDeleteEvent(repository, customProperty);
-
-    ArgumentCaptor<SerializableIndexTask<IndexedCustomProperty>> captor =
-      ArgumentCaptor.forClass(SerializableIndexTask.class);
 
     indexer.handleEvent(event);
     verify(forType, times(1)).update(captor.capture());
 
-    when(index.delete()).thenReturn(deleter);
+    SerializableIndexTask<IndexedCustomProperty> task = captor.getValue();
+    task.update(index);
+
+    verifyIndexDelete(customProperty.getKey(), customProperty.getValue(), repository);
+  }
+
+  @Test
+  void shouldDeleteMultipleChoicePropertyForDeleteEvent() {
+    CustomProperty multiple = new CustomProperty("key", "a\tb\tc");
+    CustomPropertyDeleteEvent event = new CustomPropertyDeleteEvent(repository, multiple);
+
+    indexer.handleEvent(event);
+    verify(forType, times(1)).update(captor.capture());
 
     SerializableIndexTask<IndexedCustomProperty> task = captor.getValue();
     task.update(index);
 
-    verify(index, times(1)).delete();
-
-    Id<IndexedCustomProperty> expectedId =
-      Id.of(IndexedCustomProperty.class, customProperty.getKey())
-        .and(Repository.class, repository);
-    verify(deleter, times(1)).byId(expectedId);
-
+    verifyIndexDelete(customProperty.getKey(), "a", repository);
+    verifyIndexDelete(customProperty.getKey(), "b", repository);
+    verifyIndexDelete(customProperty.getKey(), "c", repository);
   }
 
   @Test
@@ -214,9 +258,6 @@ class CustomPropertiesIndexerTest {
     @Mock
     private CustomPropertiesService customPropertiesService;
 
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private Index<IndexedCustomProperty> index;
-
     @Test
     void shouldReindex() {
       when(customPropertiesService.get(repository)).thenReturn(List.of(customProperty));
@@ -225,11 +266,7 @@ class CustomPropertiesIndexerTest {
 
       task.update(index);
 
-      verify(index).store(
-        Id.of(IndexedCustomProperty.class, customProperty.getKey()).and(Repository.class, repository.getId()),
-        "repository:read:" + repository.getId(),
-        new IndexedCustomProperty(customProperty)
-      );
+      verifyIndexStore(customProperty.getKey(), customProperty.getValue(), repository);
     }
   }
 
@@ -239,23 +276,21 @@ class CustomPropertiesIndexerTest {
     @Mock
     private CustomPropertiesService customPropertiesService;
 
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private Index<IndexedCustomProperty> index;
+    @Mock
+    private Index.DeleteBy deleteBy;
 
     @Test
     void shouldReindex() {
       when(customPropertiesService.get(repository)).thenReturn(List.of(customProperty));
       CustomPropertiesIndexer.ReindexRepositoryTask task = new CustomPropertiesIndexer.ReindexRepositoryTask(repository);
       task.setCustomPropertiesService(customPropertiesService);
+      when(deleter.by(Repository.class, repository)).thenReturn(deleteBy);
 
       task.update(index);
 
       verify(index.delete()).by(Repository.class, repository);
-      verify(index).store(
-        Id.of(IndexedCustomProperty.class, customProperty.getKey()).and(Repository.class, repository.getId()),
-        "repository:read:" + repository.getId(),
-        new IndexedCustomProperty(customProperty)
-      );
+      verify(deleteBy).execute();
+      verifyIndexStore(customProperty.getKey(), customProperty.getValue(), repository);
     }
   }
 
@@ -273,9 +308,6 @@ class CustomPropertiesIndexerTest {
 
     @Mock
     private IndexLogStore.ForIndex forIndex;
-
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private Index<IndexedCustomProperty> index;
 
     @InjectMocks
     private CustomPropertiesIndexer.ReindexAllTask task;
@@ -298,36 +330,26 @@ class CustomPropertiesIndexerTest {
     void shouldReindexAllIfLogStoreIsEmpty() {
       when(forIndex.get(IndexedCustomProperty.class))
         .thenReturn(Optional.empty());
-      when(index.delete()).thenReturn(deleter);
       when(repositoryManager.getAll()).thenReturn(List.of(repository));
       when(customPropertiesService.get(repository)).thenReturn(List.of(customProperty));
 
       task.update(index);
 
       verify(deleter).all();
-      verify(index).store(
-        Id.of(IndexedCustomProperty.class, customProperty.getKey()).and(Repository.class, repository.getId()),
-        "repository:read:" + repository.getId(),
-        new IndexedCustomProperty(customProperty)
-      );
+      verifyIndexStore(customProperty.getKey(), customProperty.getValue(), repository);
     }
 
     @Test
     void shouldReindexAllIfVersionDiffers() {
       when(forIndex.get(IndexedCustomProperty.class))
         .thenReturn(Optional.of(new IndexLog(IndexedCustomProperty.VERSION - 1)));
-      when(index.delete()).thenReturn(deleter);
       when(repositoryManager.getAll()).thenReturn(List.of(repository));
       when(customPropertiesService.get(repository)).thenReturn(List.of(customProperty));
 
       task.update(index);
 
       verify(deleter).all();
-      verify(index).store(
-        Id.of(IndexedCustomProperty.class, customProperty.getKey()).and(Repository.class, repository.getId()),
-        "repository:read:" + repository.getId(),
-        new IndexedCustomProperty(customProperty)
-      );
+      verifyIndexStore(customProperty.getKey(), customProperty.getValue(), repository);
     }
   }
 }

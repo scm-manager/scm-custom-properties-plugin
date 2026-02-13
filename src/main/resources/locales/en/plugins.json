@@ -31,13 +31,16 @@
         },
         "allowedValues": {
           "label": "Allowed values (optional)",
+          "labelRequired": "Allowed values (required by multiple choice property)",
+          "isRequiredError": "With multiple choice properties at least one allowed value needs to be defined.",
           "note": "Enter values (confirm each value by using the enter key), if you want to limit which values are allowed for this key."
         },
         "mandatoryOrDefault": {
           "label": "Custom Property Type",
           "MANDATORY": "Mandatory Property. Each repository is required to define this custom property with a value.",
           "DEFAULT": "Default Property. For each repository without this custom property, will be implied to have defined this custom property with the default value.",
-          "NONE": "Plain Property. No further rules will be applied to this custom property."
+          "NONE": "Plain Property. No further rules will be applied to this custom property.",
+          "MULTIPLE_CHOICE": "Multiple Choice Property. Choosing multiple values from the allowed values is enabled for this custom property."
         },
         "defaultValue": {
           "label": "Default value"
@@ -96,6 +99,7 @@
       "predefinedValuesNote": "For this key, the possible values are predefined in the plugin configuration. Please choose one.",
       "defaultValueTag": "Default Value",
       "mandatoryValueTag": "Mandatory Value",
+      "multipleValueTag": "Multiple Values",
       "key": {
         "label": "Key",
         "tooLong": "The maximum length of a key is 255 characters",
@@ -107,7 +111,9 @@
       },
       "submitSuccessCreate": "The custom property was successfully created",
       "value": {
-        "label": "Value"
+        "label": "Value",
+        "multipleChoiceLabel": "Values",
+        "oneChoiceRequired": "At least one value needs to be chosen."
       }
     },
     "table": {
@@ -117,7 +123,7 @@
         "action": "Action",
         "setting": "Setting",
         "allowedValues": "Allowed Values",
-        "defaultValue": "Default or Mandatory Value",
+        "defaultValue": "Multiple Choice, Default or Mandatory Value",
         "mandatoryValue": "Are Mandatory Values set",
         "missingProperty": "Missing mandatory Properties"
       },
@@ -164,6 +170,10 @@
     "CdayLPkk31": {
       "displayName": "Invalid Default Value",
       "description": "The default value is not allowed for this predefined key. Check the list of allowed values."
+    },
+    "wPE5M2fxdR": {
+      "displayName": "Invalid Multiple Choice Type",
+      "description": "Multiple choice is not allowed for this predefined key, since no allowed values are defined."
     }
   },
   "search": {

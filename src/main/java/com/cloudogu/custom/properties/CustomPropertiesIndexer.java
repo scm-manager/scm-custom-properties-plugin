@@ -37,6 +37,8 @@ import sonia.scm.search.SerializableIndexTask;
 
 import java.util.Optional;
 
+import static com.cloudogu.custom.properties.CustomPropertiesContext.MULTIPLE_CHOICE_VALUE_SEPARATOR;
+
 @Extension
 @Slf4j
 public class CustomPropertiesIndexer implements ServletContextListener {
@@ -48,18 +50,28 @@ public class CustomPropertiesIndexer implements ServletContextListener {
     this.searchEngine = searchEngine;
   }
 
+  private static String buildId(String key, String value) {
+    return String.format("%s=%s", key, value);
+  }
+
   private static void storeCustomProperty(Index<IndexedCustomProperty> index, Repository repository, CustomProperty customProperty) {
-    index.store(
-      Id.of(IndexedCustomProperty.class, customProperty.getKey()).and(Repository.class, repository.getId()),
-      RepositoryPermissions.read(repository).asShiroString(),
-      new IndexedCustomProperty(customProperty)
-    );
+    String[] values = customProperty.getValue().split(MULTIPLE_CHOICE_VALUE_SEPARATOR);
+    for (String value : values) {
+      index.store(
+        Id.of(IndexedCustomProperty.class, buildId(customProperty.getKey(), value)).and(Repository.class, repository.getId()),
+        RepositoryPermissions.read(repository).asShiroString(),
+        new IndexedCustomProperty(customProperty.getKey(), value)
+      );
+    }
   }
 
   private static void deleteCustomPropertyFromIndex(Index<IndexedCustomProperty> index, Repository repository, CustomProperty customProperty) {
-    index.delete().byId(
-      Id.of(IndexedCustomProperty.class, customProperty.getKey()).and(Repository.class, repository)
-    );
+    String[] values = customProperty.getValue().split(MULTIPLE_CHOICE_VALUE_SEPARATOR);
+    for (String value : values) {
+      index.delete().byId(
+        Id.of(IndexedCustomProperty.class, buildId(customProperty.getKey(), value)).and(Repository.class, repository)
+      );
+    }
   }
 
   private static void indexRepository(Index<IndexedCustomProperty> index, CustomPropertiesService customPropertiesService, Repository repository) {
@@ -85,13 +97,10 @@ public class CustomPropertiesIndexer implements ServletContextListener {
   @Subscribe
   public void handleEvent(CustomPropertyUpdateEvent event) {
     log.debug("Storing updated custom property {} for repository {}", event.getProperty(), event.getRepository());
+    event.getPreviousProperty().ifPresent(
+      previousProperty -> handleDeleting(event.getRepository(), previousProperty)
+    );
     handleStoring(event.getRepository(), event.getProperty());
-
-    event.getPreviousProperty().ifPresent(previousProperty -> {
-      if (!previousProperty.getKey().equals(event.getProperty().getKey())) {
-        handleDeleting(event.getRepository(), previousProperty);
-      }
-    });
   }
 
   @Subscribe

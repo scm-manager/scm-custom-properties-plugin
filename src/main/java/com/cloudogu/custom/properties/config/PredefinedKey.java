@@ -16,6 +16,7 @@
 
 package com.cloudogu.custom.properties.config;
 
+import com.cloudogu.custom.properties.CustomPropertiesContext;
 import com.google.common.base.Strings;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
@@ -24,6 +25,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.cloudogu.custom.properties.config.ValueMode.NONE;
@@ -48,6 +50,27 @@ public class PredefinedKey {
   }
 
   public boolean isValueValid(String value) {
+    if (mode == ValueMode.MULTIPLE_CHOICE) {
+      return isMultipleChoiceValueValid(value);
+    }
+
+    return isSingleValueValid(value);
+  }
+
+  private boolean isMultipleChoiceValueValid(String value) {
+    String[] choices = value.split(CustomPropertiesContext.MULTIPLE_CHOICE_VALUE_SEPARATOR);
+
+    if (choices.length == 0) {
+      return false;
+    }
+
+    return Arrays.stream(choices)
+      .filter(choice -> !allowedValues.contains(choice))
+      .findFirst()
+      .isEmpty();
+  }
+
+  private boolean isSingleValueValid(String value) {
     return allowedValues.isEmpty() || allowedValues.contains(value);
   }
 

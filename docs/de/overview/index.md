@@ -35,12 +35,17 @@ Beim Anlegen der Property ist Folgendes zu beachten:
 2. Es dürfen nur Buchstaben, Ziffern, Punkte, Leerzeichen, Unterstriche, Slashes, Doppelpunkte, Bindestriche und @-Symbole verwendet werden.
 3. Jeder Schlüssel darf pro Repository nur einmal vergeben werden.
 
-Mehrere Werte für denselben Schlüssel müssen als eine Property angelegt werden. 
-Die einzelnen Werte werden mit einem Komma getrennt.
-Für den Wert selbst gibt es keine weiteren Begrenzungen oder Validierungsregeln, es sei denn der verwendete Schlüssel ist ein vordefinierter Schlüssel zu dem bestimmte Werte vorgegeben worden ([siehe Dokumentation zur Konfiguration des Plugins](../config)).
-Falls dies der Fall ist, kann der Benutzer mithilfe eines Dropdowns einen der erlaubten Werte auswählen.
+Sollte man mehrere Werte für denselben Schlüssel anlegen müssen, 
+dann kann in der Konfiguration eine Custom Property mit Mehrfachauswahl definiert werden. 
+Für den Wert selbst gibt es keine weiteren Begrenzungen oder Validierungsregeln, 
+es sei denn, der verwendete Schlüssel ist ein vordefinierter Schlüssel zu dem bestimmte Werte vorgegeben worden ([siehe Dokumentation zur Konfiguration des Plugins](../config)).
+Falls dies der Fall ist und keine Mehrfachauswahl konfiguriert ist, kann der Benutzer mithilfe eines Dropdowns einen der erlaubten Werte auswählen.
 
 ![Anlegen einer Property mit vordefinierten Werten](./assets/custom_property_with_predefined_values.png)
+
+Sollte die Mehrfachauswahl konfiguriert sein, dann kann der Benutzer mit einer Liste von Checkboxen aus den jeweiligen Werten wählen.
+
+![Anlegen einer Property mit Mehrfachauswahl](./assets/custom_property_with_multiple_choice.png)
 
 ## Bearbeiten und Löschen von Custom Properties
 
@@ -54,8 +59,8 @@ Sollte dem Benutzer diese Berechtigung fehlen, werden die entsprechenden Buttons
 
 ![Tabelle der Custom Properties eines Repositorys mit default Custom Properties](./assets/default-custom-properties.png)
 
-Falls in der Konfiguration auf globaler oder Namespace-Ebene, Custom Properties mit einem Default-Wert definiert wurden,
-dann erscheinen diese als Default Custom Properties in den jeweiligen Repositories, solange Sie nicht explizit erstellt wurden.
+Falls in der Konfiguration auf globaler oder Namespace-Ebene Custom Properties mit einem Default-Wert definiert wurden,
+dann erscheinen diese als Default Custom Properties in den jeweiligen Repositories, solange sie nicht explizit erstellt wurden.
 Default Custom Properties unterscheiden sich dadurch, dass der Wert mit einem "Default-Wert" Tag versehen sind und man diese nicht löschen kann.
 
 ## Custom Properties mit einem Pflichtwert
@@ -64,8 +69,8 @@ Default Custom Properties unterscheiden sich dadurch, dass der Wert mit einem "D
 
 Falls in der Konfiguration auf globaler oder Namespace-Ebene Custom Properties mit einem Pflichtwert definiert wurden,
 dann werden diese in den Repositories auf zwei verschiedene Arten gekennzeichnet.
-Falls das jeweilige Custom Property für das Repository definiert wurde, dann wird der Wert mit einem "Pflichtwert" Tag versehen.
-Sollte das jeweilige Custom Property nicht definiert sein, dann erscheint der Schlüssel am unteren Ende der Tabelle mit den anderen fehlenden Pflichtwerten.
+Falls die jeweilige Custom Property für das Repository definiert wurde, dann wird der Wert mit einem "Pflichtwert" Tag versehen.
+Sollte die jeweilige Custom Property nicht definiert sein, dann erscheint der Schlüssel am unteren Ende der Tabelle mit den anderen fehlenden Pflichtwerten.
 
 ## Hinweis auf fehlende Custom Properties mit Pflichtwerten
 

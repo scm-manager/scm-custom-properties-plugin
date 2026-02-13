@@ -31,13 +31,16 @@
         },
         "allowedValues": {
           "label": "Erlaubte Werte (optional)",
+          "labelRequired": "Erlaubte Werte (Erforderlich für Mehrfachauswahl)",
+          "isRequiredError": "Bei Mehrfachauswahl muss mindestens ein erlaubter Wert definiert sein",
           "note": "Tragen Sie hier Werte ein (jeweils mit Enter bestätigen), falls Sie für den jeweiligen Schlüssel einschränken wollen, welche Werte erlaubt sind."
         },
         "mandatoryOrDefault": {
           "label": "Custom Property Typ",
           "MANDATORY": "Custom Property mit Pflichtwert. Jedes Repository ist verpflichtet, diese Custom Property mit einem Wert zu definieren.",
           "DEFAULT": "Default-Property. Für jedes Repository, das dieses Custom Property nicht definiert hat, wird dieses Custom Property mit dem Default-Wert impliziert.",
-          "NONE": "Einfache Property. Für dieses Custom Property gelten keine weiteren Regeln."
+          "NONE": "Einfache Property. Für dieses Custom Property gelten keine weiteren Regeln.",
+          "MULTIPLE_CHOICE": "Custom Property mit Mehrfachauswahl. Für dieses Custom Property können mehrere Werte aus den erlaubten Werten gewählt werden."
         },
         "defaultValue": {
           "label": "Default-Wert"
@@ -96,6 +99,7 @@
       "subtitle_edit": "Custom Property mit dem Schlüssel \"{{key}}\" bearbeiten",
       "defaultValueTag": "Default-Wert",
       "mandatoryValueTag": "Pflichtwert",
+      "multipleValueTag": "Mehrfachauswahl",
       "key": {
         "label": "Schlüssel",
         "tooLong": "Der Schlüssel überschreitet die maximale Länge von 255 Zeichen",
@@ -107,7 +111,9 @@
       },
       "submitSuccessCreate": "Die Custom Property wurde erfolgreich erstellt",
       "value": {
-        "label": "Wert"
+        "label": "Wert",
+        "multipleChoiceLabel": "Werte",
+        "oneChoiceRequired": "Es muss mindestens ein Wert ausgewählt werden."
       }
     },
     "table": {
@@ -117,7 +123,7 @@
         "action": "Aktion",
         "setting": "Einstellung",
         "allowedValues": "Erlaubte Werte",
-        "defaultValue": "Default- oder Pflichtwert",
+        "defaultValue": "Mehrfachauswahl, Default- oder Pflichtwert",
         "mandatoryValue": "Pflichtwert gesetzt?",
         "missingProperty": "Fehlende Pflichtwerte"
       },
@@ -164,6 +170,10 @@
     "CdayLPkk31": {
       "displayName": "Ungültiger Default-Wert",
       "description": "Der eingetragene Default-Wert ist nicht erlaubt für diesen vordefinierten Schlüssel. Überprüfen Sie die Liste der erlaubten Werte."
+    },
+    "wPE5M2fxdR": {
+      "displayName": "Ungültige Mehrfachauswahl",
+      "description": "Mehrfachauswahl ist nicht erlaubt für diesen vordefinierten Schlüssel, da kein erlaubter Wert definiert wurde."
     }
   },
   "search": {

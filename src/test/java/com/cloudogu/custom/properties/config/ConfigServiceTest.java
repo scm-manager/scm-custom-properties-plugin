@@ -92,6 +92,21 @@ class ConfigServiceTest {
       assertThatThrownBy(() -> configService.setGlobalConfig(globalConfig))
         .isInstanceOf(InvalidDefaultValueException.class);
     }
+
+    @Test
+    void shouldThrowBecauseMultipleChoiceIsInvalidWithoutAllowedValues() {
+      GlobalConfig globalConfig = new GlobalConfig();
+      globalConfig.setEnabled(false);
+      globalConfig.setEnableNamespaceConfig(false);
+      globalConfig.setPredefinedKeys(
+        Map.of(
+          "lang", new PredefinedKey(List.of(), ValueMode.MULTIPLE_CHOICE, "")
+        )
+      );
+
+      assertThatThrownBy(() -> configService.setGlobalConfig(globalConfig))
+        .isInstanceOf(InvalidMultipleChoiceException.class);
+    }
   }
 
   @Nested
@@ -138,6 +153,19 @@ class ConfigServiceTest {
 
       assertThatThrownBy(() -> configService.setNamespaceConfig("Kanto", namespaceConfig))
         .isInstanceOf(InvalidDefaultValueException.class);
+    }
+
+    @Test
+    void shouldThrowBecauseMultipleChoiceIsInvalidWithoutAllowedValues() {
+      NamespaceConfig namespaceConfig = new NamespaceConfig();
+      namespaceConfig.setPredefinedKeys(
+        Map.of(
+          "lang", new PredefinedKey(List.of(), ValueMode.MULTIPLE_CHOICE, "")
+        )
+      );
+
+      assertThatThrownBy(() -> configService.setNamespaceConfig("Kanto", namespaceConfig))
+        .isInstanceOf(InvalidMultipleChoiceException.class);
     }
   }
 

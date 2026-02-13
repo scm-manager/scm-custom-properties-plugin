@@ -16,8 +16,6 @@
 
 package com.cloudogu.custom.properties;
 
-import java.util.Locale;
-import java.util.function.Predicate;
 import com.google.common.base.Strings;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +23,13 @@ import sonia.scm.repository.Repository;
 import sonia.scm.repository.RepositoryManager;
 import sonia.scm.util.GlobUtil;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Locale;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
+
+import static com.cloudogu.custom.properties.CustomPropertiesContext.MULTIPLE_CHOICE_VALUE_SEPARATOR;
 
 @Slf4j
 public class CustomPropertiesSearchService {
@@ -47,9 +50,18 @@ public class CustomPropertiesSearchService {
       repoStream = repoStream.filter(this::removeArchived);
     }
 
-    return repoStream
-      .map(this::loadCustomProps)
-      .filter(repositoryWithProps -> filterByProperties(repositoryWithProps, filter))
+    Stream<RepositoryWithProps> repoWithPropsStream = repoStream.map(this::loadCustomProps);
+
+    if (filter.hasNoCustomPropertyFilter()) {
+      return repoWithPropsStream.toList();
+    }
+
+    Predicate<CustomProperty> keyFilter = filter.getKeyFilter();
+    Predicate<CustomProperty> valueFilter = filter.getValueFilter();
+    Predicate<CustomProperty> keyValuePairFilter = filter.getKeyValueFilter();
+
+    return repoWithPropsStream
+      .filter(repositoryWithProps -> filterByProperties(repositoryWithProps, keyFilter, valueFilter, keyValuePairFilter))
       .toList();
   }
 
@@ -61,19 +73,13 @@ public class CustomPropertiesSearchService {
     return new RepositoryWithProps(repository, customPropertiesService.get(repository));
   }
 
-  private boolean filterByProperties(RepositoryWithProps repositoryWithProps, Filter filter) {
-    if (filter.hasNoCustomPropertyFilter()) {
-      return true;
-    }
-
-    boolean keyMatches = !filter.hasKeyFilter();
-    Predicate<CustomProperty> keyFilter = filter.getKeyFilter();
-
-    boolean valueMatches = !filter.hasValueFilter();
-    Predicate<CustomProperty> valueFilter = filter.getValueFilter();
-
-    boolean keyValuePairMatches = !filter.hasKeyValueFilter();
-    Predicate<CustomProperty> keyValuePairFilter = filter.getKeyValueFilter();
+  private boolean filterByProperties(RepositoryWithProps repositoryWithProps,
+                                     Predicate<CustomProperty> keyFilter,
+                                     Predicate<CustomProperty> valueFilter,
+                                     Predicate<CustomProperty> keyValuePairFilter) {
+    boolean keyMatches = false;
+    boolean valueMatches = false;
+    boolean keyValuePairMatches = false;
 
     for (CustomProperty property : repositoryWithProps.props) {
       if (keyFilter.test(property)) {
@@ -93,47 +99,70 @@ public class CustomPropertiesSearchService {
   }
 
   record Filter(String key, String value, String keyValuePair, boolean excludeArchived) {
+
     boolean hasNoCustomPropertyFilter() {
-      return Strings.isNullOrEmpty(key) && Strings.isNullOrEmpty(value) && Strings.isNullOrEmpty(keyValuePair);
+      return hasNoKeyFilter() && hasNoValueFilter() && hasNoKeyValueFilter();
     }
 
-    boolean hasKeyFilter() {
-      return !Strings.isNullOrEmpty(key);
+    boolean hasNoKeyFilter() {
+      return Strings.isNullOrEmpty(key);
     }
 
     Predicate<CustomProperty> getKeyFilter() {
-      if (hasKeyFilter()) {
-        String loweredKey = key.toLowerCase(Locale.ENGLISH);
-        return property -> GlobUtil.matches(loweredKey, property.loweredKey());
+      if (hasNoKeyFilter()) {
+        return property -> true;
       }
-      return property -> false;
+
+      String loweredKey = key.toLowerCase(Locale.ENGLISH);
+      return property -> GlobUtil.matches(loweredKey, property.loweredKey());
     }
 
-    boolean hasValueFilter() {
-      return !Strings.isNullOrEmpty(value);
+    boolean hasNoValueFilter() {
+      return Strings.isNullOrEmpty(value);
     }
 
     Predicate<CustomProperty> getValueFilter() {
-      if (hasValueFilter()) {
-        String loweredValue = value.toLowerCase(Locale.ENGLISH);
-        return property -> GlobUtil.matches(loweredValue, property.loweredValue());
+      if (hasNoValueFilter()) {
+        return property -> true;
       }
-      return property -> false;
+
+      return buildValueFilter(value);
     }
 
-    boolean hasKeyValueFilter() {
-      return !Strings.isNullOrEmpty(keyValuePair);
+    private Predicate<CustomProperty> buildValueFilter(String filterValue) {
+      String[] filterValues = filterValue.toLowerCase(Locale.ENGLISH).split(MULTIPLE_CHOICE_VALUE_SEPARATOR);
+
+      return property -> {
+        Predicate<String> matchPropValue;
+        if (property.getValue().contains(MULTIPLE_CHOICE_VALUE_SEPARATOR)) {
+          String[] values = property.loweredValue().split(MULTIPLE_CHOICE_VALUE_SEPARATOR);
+          matchPropValue = filter -> Arrays.stream(values).anyMatch(value -> GlobUtil.matches(filter, value));
+        } else {
+          String loweredValue = property.loweredValue();
+          matchPropValue = filter -> GlobUtil.matches(filter, loweredValue);
+        }
+
+        return Arrays.stream(filterValues).allMatch(matchPropValue);
+      };
+    }
+
+    boolean hasNoKeyValueFilter() {
+      return Strings.isNullOrEmpty(keyValuePair);
     }
 
     Predicate<CustomProperty> getKeyValueFilter() {
-      if (hasKeyValueFilter()) {
-        String[] loweredKeyValue = keyValuePair.toLowerCase(Locale.ENGLISH).split("=", 2);
-        return property -> GlobUtil.matches(loweredKeyValue[0], property.loweredKey()) &&
-          GlobUtil.matches(loweredKeyValue[1], property.loweredValue());
+      if (hasNoKeyValueFilter()) {
+        return property -> true;
       }
-      return property -> false;
+
+      String[] loweredKeyValue = keyValuePair.split("=", 2);
+      String filterKey = loweredKeyValue[0].toLowerCase(Locale.ENGLISH);
+      Predicate<CustomProperty> filterValue = buildValueFilter(loweredKeyValue[1]);
+
+      return property -> GlobUtil.matches(filterKey, property.loweredKey()) && filterValue.test(property);
     }
   }
 
-  record RepositoryWithProps(Repository repository, Collection<CustomProperty> props) {}
+  record RepositoryWithProps(Repository repository, Collection<CustomProperty> props) {
+  }
 }

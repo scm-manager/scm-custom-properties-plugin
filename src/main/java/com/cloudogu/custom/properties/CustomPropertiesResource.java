@@ -244,7 +244,40 @@ public class CustomPropertiesResource {
 
   @Operation(
     summary = "Filters repositories that match filters applied to their custom properties",
-    description = "Returns a list of repositories, if it contains custom properties that matches all the supplied filters.",
+    description = """
+      Returns a list of repositories, if it contains custom properties that matches all the supplied filters.
+      The filters are applied in a case insensitive way.
+      
+      The filters also support multiple choice values, by concatenating the values via tab stop character (ie. `\\t`).
+      The `\\t` should be encoded as `%09` for the use in a query parameter.
+      The order of the multiple choice values is not considered.
+      
+      The filters also support the `?` and `*` wildcards.
+      - `?`: Any one character
+      - `*`: Any multiple characters and with any amount of them
+      
+      Examples:
+      
+      If you want to search for repositories that have at least one property with the values Java and TypeScript:
+      `?value=Java%09TypeScript`
+      
+      If you want to search for repositories that have at least one property with the key Language:
+      `?key=Language`
+      
+      If you want to search for repositories that have at least one property with the key Language and the values Java and TypeScript:
+      `?property=Language=Java%09TypeScript`
+      
+      If you want to additionally exclude archived repositories from the result set:
+      `?excludeArchived=true`
+      By default, archived repositories are included within the result.
+      
+      If you want to additionally include the custom properties of each repository to the result set:
+      `?includeProps=true`
+      Per default, custom properties are excluded within the result.
+      
+      It is also possible to combine multiple filters, each of them is combined via a logical AND:
+      `?key=Analysis&value=Java&property=Version=1.*`
+      """,
     tags = "Custom Properties",
     operationId = "custom-properties_find_repositories_with_custom_properties"
   )

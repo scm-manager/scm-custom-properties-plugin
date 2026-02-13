@@ -30,20 +30,21 @@ Um einen Wert hinzuzufügen, muss dieser im Eingabefeld eingegeben und anschlie�
 bestätigt werden. Bestehende Werte können mit den kleinen "x"-Symbol neben dem Wert wieder aus der Liste entfernt werden.
 Bereits für Repositories gesetzte Properties werden bei einer Änderung der Konfiguration nicht nachträglich validiert.
 
-![Vordefinierte Werte zu einem vordefinierten Schlüssel](./assets/predefined_values.png)
+Des Weiteren kann der Benutzer mit einem Radio Input noch einen Typ für die Custom Property festlegen.
+Dafür gibt es vier Optionen:
+Eine einfache Property, eine Default-Property, eine Custom Property mit Pflichtwert und eine Custom Property mit Mehrfachauswahl.
 
-Abschließend kann der Benutzer mit einem Radio Input noch einen Typ für das Custom Property festlegen.
-Dafür gibt es drei Optionen:
-Eine einfache Property, eine Default-Property und eine Custom Property mit Pflichtwert.
+Bei Custom Properties mit Pflichtwert wird festgelegt,
+dass jedes Repository eine Custom Property mit dem jeweiligen Schlüssel und einem Wert definieren muss.
 
-Bei Custom Properties mit Pflichtwert wird festgelegt, 
-dass jedes Repository ein Custom Property mit dem jeweiligen Schlüssel und einem Wert definieren muss.
-
-Bei Default-Properties wird ein Default-Wert implizit angenommen, falls für ein Repository das jeweilige Custom Property noch nicht definiert wurde.
-Falls Default-Property als Typ festgelegt wurde, dann muss der Benutzer auch einen Default-Wert angeben.
-Sollten die Werte für das Custom Property uneingeschränkt sein (wenn also keine erlaubten Werte gesetzt sind),
+Bei Default-Properties wird ein Default-Wert implizit angenommen, falls für ein Repository die jeweilige Custom Property noch nicht definiert wurde.
+Falls Default-Property als Typ festgelegt wurde, muss auch einen Default-Wert angeben werden.
+Sollten die Werte für die Custom Property uneingeschränkt sein (wenn also keine erlaubten Werte gesetzt sind),
 erfolgt die Eingabe des Default-Werts mithilfe eines Text-Inputs.
 Sind erlaubte Werte vorgegeben, dann steht ein Dropdown mit allen erlaubten Werten und einer leeren Eingabe als Optionen zur Verfügung.
+
+Bei Custom Properties mit Mehrfachauswahl ist es möglich, mehrere Werte für die jeweilige Custom Property zu setzen.
+Für diesen Typ müssen jedoch erlaubte Werte definiert sein.
 
 Bei einer einfachen Property gelten keine weiteren Regeln.
 
@@ -54,9 +55,9 @@ Bei einer einfachen Property gelten keine weiteren Regeln.
 ![Definition von Schlüsseln auf globaler Ebene](./assets/predefined_keys_globally.png)
 
 Die vordefinierten Schlüssel können auch in der Schlüsselübersicht mithilfe der jeweiligen Aktions-Buttons bearbeitet und gelöscht werden.
-In der Schlüsselübersicht wird ebenfalls angezeigt, ob für das jeweilige Custom Property ein Default- oder Pflichtwert definiert wurde.
-Falls das Custom Property einen Pflichtwert hat, dann wird mithilfe von Icons dargestellt, ob alle Repositories diesen Pflichtwert auch definiert haben.
-Sollte mindestens ein Repository fehlen, dann erhält der Benutzer ein Warn-Icon als Rückmeldung.
+In der Schlüsselübersicht wird ebenfalls angezeigt, ob für die jeweilige Custom Property eine Mehrfachauswahl, ein Default- oder Pflichtwert definiert wurde.
+Falls die Custom Property einen Pflichtwert hat, dann wird mithilfe von Icons dargestellt, ob alle Repositories diesen Pflichtwert auch definiert haben.
+Sollte mindestens ein Repository fehlen, wird ein Warn-Icon als Rückmeldung angezeigt.
 Auf dieses Icon kann geklickt werden, um eine Übersicht über alle Repositories zu erhalten, für die der Pflichtwert noch definiert werden muss.
 
 ![Überblick über alle Repositories für die ein Custom Property mit Pflichtwert definiert werden muss](./assets/repos_with_missing_mandatory_properties.png)

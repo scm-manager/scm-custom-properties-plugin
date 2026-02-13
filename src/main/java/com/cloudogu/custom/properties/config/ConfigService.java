@@ -50,6 +50,10 @@ public class ConfigService {
       throw new InvalidDefaultValueException(entry.getKey(), entry.getValue());
     });
 
+    findInvalidMultipleChoice(globalConfig.getPredefinedKeys()).ifPresent(entry -> {
+      throw new InvalidMultipleChoiceException(entry.getKey());
+    });
+
     globalConfigStore.set(globalConfig);
   }
 
@@ -62,6 +66,10 @@ public class ConfigService {
       throw new InvalidDefaultValueException(namespace, entry.getKey(), entry.getValue());
     });
 
+    findInvalidMultipleChoice(namespaceConfig.getPredefinedKeys()).ifPresent(entry -> {
+      throw new InvalidMultipleChoiceException(namespace, entry.getKey());
+    });
+
     getNamespaceConfigStore(namespace).set(namespaceConfig);
   }
 
@@ -70,6 +78,16 @@ public class ConfigService {
       .entrySet()
       .stream()
       .filter(entry -> !entry.getValue().isDefaultValueValid())
+      .findFirst();
+  }
+
+  private Optional<Map.Entry<String, PredefinedKey>> findInvalidMultipleChoice(Map<String, PredefinedKey> predefinedKeys) {
+    return predefinedKeys
+      .entrySet()
+      .stream()
+      .filter(
+        entry -> entry.getValue().getMode() == ValueMode.MULTIPLE_CHOICE && entry.getValue().getAllowedValues().isEmpty()
+      )
       .findFirst();
   }
 

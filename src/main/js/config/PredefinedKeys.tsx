@@ -94,15 +94,19 @@ const MandatoryValueSet: FC<MandatoryValueSetProps> = ({
   );
 };
 
-const DefaultOrMandatoryColumn: FC<Pick<SinglePredefinedKey, "mode" | "defaultValue">> = ({ mode, defaultValue }) => {
+const ValueModeColumn: FC<Pick<SinglePredefinedKey, "mode" | "defaultValue">> = ({ mode, defaultValue }) => {
   const [t] = useTranslation("plugins");
 
   if (mode === "MANDATORY") {
-    return <span className="mr-2">{t("scm-custom-properties-plugin.editor.mandatoryValueTag")}</span>;
+    return <>{t("scm-custom-properties-plugin.editor.mandatoryValueTag")}</>;
   }
 
   if (mode === "DEFAULT" && defaultValue) {
     return <>{`${t("scm-custom-properties-plugin.editor.defaultValueTag")}: ${defaultValue}`}</>;
+  }
+
+  if (mode === "MULTIPLE_CHOICE") {
+    return <>{t("scm-custom-properties-plugin.editor.multipleValueTag")}</>;
   }
 
   return null;
@@ -153,7 +157,7 @@ const PredefinedKeys = <T extends BaseConfig>({
                 <AllowedValuesColumn key={key} allowedValues={definition.allowedValues} />
               </td>
               <td>
-                <DefaultOrMandatoryColumn defaultValue={definition.defaultValue} mode={definition.mode} />
+                <ValueModeColumn defaultValue={definition.defaultValue} mode={definition.mode} />
               </td>
               <td colSpan={2}>
                 <MandatoryValueSet
@@ -175,7 +179,7 @@ const PredefinedKeys = <T extends BaseConfig>({
                 <AllowedValuesColumn key={key} allowedValues={definition.allowedValues} />
               </td>
               <td>
-                <DefaultOrMandatoryColumn defaultValue={definition.defaultValue} mode={definition.mode} />
+                <ValueModeColumn defaultValue={definition.defaultValue} mode={definition.mode} />
               </td>
               <td>
                 <MandatoryValueSet

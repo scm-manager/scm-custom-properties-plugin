@@ -35,11 +35,18 @@ When creating the property, make sure that the key
 2. consists only of letters, numbers, periods, spaces, underscores, slashes, colons, dashes, and the @ character,
 3. is unique within a repository(each key can be assigned only once).
 
-Multiple values for the same key must be entered as a single property separated by commas. 
+If you need to enter multiple values for the same key,
+you can define the custom property to be a multiple choice property within the configuration.
 There are no restrictions on the value, unless a predefined key is being used with predefined values.
-If this is the case, then the user can select one of the allowed values within a dropdown element.
+If this is the case and the custom property is not a multiple choice property,
+then the user can select one of the allowed values within a dropdown element.
 
 ![Creation of a custom property with predefined values](./assets/custom_property_with_predefined_values.png)
+
+If the custom property is a multiple choice property,
+then the user can select at least one value from the list of allowed values with the use of checkboxes.
+
+![Creation of a custom property with multiple choice](./assets/custom_property_with_multiple_choice.png)
 
 ## Editing and Deletion of Custom Properties
 

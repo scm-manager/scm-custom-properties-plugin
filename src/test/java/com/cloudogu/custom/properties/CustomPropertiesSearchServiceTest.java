@@ -39,24 +39,27 @@ class CustomPropertiesSearchServiceTest {
   private final CustomProperty javaPendingReleaseProp = new CustomProperty("pending_release", "true");
   private final CustomProperty javaVersionProp = new CustomProperty("version", "1.0.0");
   private final CustomProperty javaTimeoutProp = new CustomProperty("timeout", "1000");
+  private final CustomProperty javaMultipleChoiceProp = new CustomProperty("multiple_choice", "arch\tubuntu\tmint");
   private final List<CustomProperty> javaRepoProps = List.of(
-    javaLangProp, javaPendingReleaseProp, javaVersionProp, javaTimeoutProp
+    javaLangProp, javaPendingReleaseProp, javaVersionProp, javaTimeoutProp, javaMultipleChoiceProp
   );
   private final Repository goRepo = RepositoryTestData.create42Puzzle();
   private final CustomProperty goLangProp = new CustomProperty("Lang", "Go");
   private final CustomProperty goSonarAnalysisProp = new CustomProperty("sonar_analysis", "true");
   private final CustomProperty goVersionProp = new CustomProperty("version", "2.0.0");
   private final CustomProperty goTimeoutProp = new CustomProperty("timeout", "1000");
+  private final CustomProperty goMultipleChoiceProp = new CustomProperty("multiple_choice", "debian\tgentoo\tmanjaro");
   private final List<CustomProperty> goRepoProps = List.of(
-    goLangProp, goSonarAnalysisProp, goVersionProp, goTimeoutProp
+    goLangProp, goSonarAnalysisProp, goVersionProp, goTimeoutProp, goMultipleChoiceProp
   );
   private final Repository archivedRepo = RepositoryTestData.createHappyVerticalPeopleTransporter();
   private final CustomProperty archivedLangProp = new CustomProperty("lang", "c");
   private final CustomProperty archivedDeprecatedProp = new CustomProperty("deprecated", "true");
   private final CustomProperty archivedVersionProp = new CustomProperty("version", "3.0.0");
   private final CustomProperty archivedTimeoutProp = new CustomProperty("timeout", "1000");
+  private final CustomProperty archivedMultipleChoiceProp = new CustomProperty("multiple_choice", "windows\tunix\tmacOS");
   private final List<CustomProperty> archivedRepoProps = List.of(
-    archivedLangProp, archivedDeprecatedProp, archivedVersionProp, archivedTimeoutProp
+    archivedLangProp, archivedDeprecatedProp, archivedVersionProp, archivedTimeoutProp, archivedMultipleChoiceProp
   );
   @Mock
   private CustomPropertiesService customPropertiesService;
@@ -219,6 +222,78 @@ class CustomPropertiesSearchServiceTest {
     );
     assertThat(firstResult).isEqualTo(List.of(
       new CustomPropertiesSearchService.RepositoryWithProps(javaRepo, javaRepoProps)
+    ));
+  }
+
+  @Test
+  void shouldMatchMultipleChoiceValuesWithSingleValueFilter() {
+    Collection<CustomPropertiesSearchService.RepositoryWithProps> firstResult = searchService.findRepositoriesWithCustomProperties(
+      new CustomPropertiesSearchService.Filter(null, "u?u*", null, false)
+    );
+    assertThat(firstResult).isEqualTo(List.of(
+      new CustomPropertiesSearchService.RepositoryWithProps(javaRepo, javaRepoProps)
+    ));
+
+    Collection<CustomPropertiesSearchService.RepositoryWithProps> secondResult = searchService.findRepositoriesWithCustomProperties(
+      new CustomPropertiesSearchService.Filter(null, "m*", null, false)
+    );
+    assertThat(secondResult).isEqualTo(List.of(
+      new CustomPropertiesSearchService.RepositoryWithProps(javaRepo, javaRepoProps),
+      new CustomPropertiesSearchService.RepositoryWithProps(goRepo, goRepoProps),
+      new CustomPropertiesSearchService.RepositoryWithProps(archivedRepo, archivedRepoProps)
+    ));
+  }
+
+  @Test
+  void shouldMatchMultipleChoiceValuesWithMultipleValueFilter() {
+    Collection<CustomPropertiesSearchService.RepositoryWithProps> firstResult = searchService.findRepositoriesWithCustomProperties(
+      new CustomPropertiesSearchService.Filter(null, "arch\tu?u*\tmi?t", null, false)
+    );
+    assertThat(firstResult).isEqualTo(List.of(
+      new CustomPropertiesSearchService.RepositoryWithProps(javaRepo, javaRepoProps)
+    ));
+
+    Collection<CustomPropertiesSearchService.RepositoryWithProps> secondResult = searchService.findRepositoriesWithCustomProperties(
+      new CustomPropertiesSearchService.Filter(null, "*a*\tgentoo", null, false)
+    );
+    assertThat(secondResult).isEqualTo(List.of(
+      new CustomPropertiesSearchService.RepositoryWithProps(goRepo, goRepoProps)
+    ));
+  }
+
+  @Test
+  void shouldMatchMultipleChoicePropertiesWithSingleValueFilter() {
+    Collection<CustomPropertiesSearchService.RepositoryWithProps> firstResult = searchService.findRepositoriesWithCustomProperties(
+      new CustomPropertiesSearchService.Filter(null, null, "MULTIPLE_CHOICE=u?u*", false)
+    );
+    assertThat(firstResult).isEqualTo(List.of(
+      new CustomPropertiesSearchService.RepositoryWithProps(javaRepo, javaRepoProps)
+    ));
+
+    Collection<CustomPropertiesSearchService.RepositoryWithProps> secondResult = searchService.findRepositoriesWithCustomProperties(
+      new CustomPropertiesSearchService.Filter(null, null, "multiple_choice=m*", false)
+    );
+    assertThat(secondResult).isEqualTo(List.of(
+      new CustomPropertiesSearchService.RepositoryWithProps(javaRepo, javaRepoProps),
+      new CustomPropertiesSearchService.RepositoryWithProps(goRepo, goRepoProps),
+      new CustomPropertiesSearchService.RepositoryWithProps(archivedRepo, archivedRepoProps)
+    ));
+  }
+
+  @Test
+  void shouldMatchMultipleChoicePropertiesWithMultipleValueFilter() {
+    Collection<CustomPropertiesSearchService.RepositoryWithProps> firstResult = searchService.findRepositoriesWithCustomProperties(
+      new CustomPropertiesSearchService.Filter(null, null, "multiple_choic?=arch\tu?u*\tmi?t", false)
+    );
+    assertThat(firstResult).isEqualTo(List.of(
+      new CustomPropertiesSearchService.RepositoryWithProps(javaRepo, javaRepoProps)
+    ));
+
+    Collection<CustomPropertiesSearchService.RepositoryWithProps> secondResult = searchService.findRepositoriesWithCustomProperties(
+      new CustomPropertiesSearchService.Filter(null, null, "mult*choice=*a*\tgentoo", false)
+    );
+    assertThat(secondResult).isEqualTo(List.of(
+      new CustomPropertiesSearchService.RepositoryWithProps(goRepo, goRepoProps)
     ));
   }
 }

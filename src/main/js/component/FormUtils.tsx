@@ -14,8 +14,20 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-package com.cloudogu.custom.properties.config;
+import React from "react";
+import styled from "styled-components";
 
-public enum ValueMode {
-  MANDATORY, DEFAULT, NONE, MULTIPLE_CHOICE
-}
+type WithChildren = { children: React.ReactNode };
+
+export const ButtonsContainer = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
+
+export const Row = ({ children }: WithChildren) => {
+  return <div className="columns">{children}</div>;
+};
+
+export const Field = ({ children }: WithChildren) => {
+  return <div className="field column">{children}</div>;
+};

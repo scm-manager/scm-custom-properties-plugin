@@ -28,10 +28,10 @@ import {
 } from "@scm-manager/ui-core";
 import { Option } from "@scm-manager/ui-types";
 import { useTranslation } from "react-i18next";
-import styled from "styled-components";
 import { PredefinedKeys, SinglePredefinedKey, ValueMode, valueModes } from "../types";
 import { useHistory } from "react-router";
 import { validateKey } from "../validation";
+import { ButtonsContainer, Field, Row } from "../component/FormUtils";
 
 const FORM_IDS = {
   form: "form-predefinedKey",
@@ -41,8 +41,6 @@ const FORM_IDS = {
   defaultValueInput: "input-defaultValue",
 };
 
-type WithChildren = { children: React.ReactNode };
-
 type PredefinedKeyEntry = { key: string } & SinglePredefinedKey;
 
 type EditorProps = {
@@ -51,19 +49,6 @@ type EditorProps = {
   redirectUrl: string;
   submit: (entry: PredefinedKeyEntry) => Promise<Response | undefined>;
   isSubmitting: boolean;
-};
-
-const ButtonsContainer = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const Row = ({ children }: WithChildren) => {
-  return <div className="columns">{children}</div>;
-};
-
-const Field = ({ children }: WithChildren) => {
-  return <div className="field column">{children}</div>;
 };
 
 const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, submit, isSubmitting }: EditorProps) => {
@@ -79,6 +64,7 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
       return { label: value, value };
     }),
   );
+  const [allowedValuesRequiredError, setAllowedValuesRequiredError] = useState("");
 
   const [valueMode, setValueMode] = useState<ValueMode>(initialState.mode);
 
@@ -94,10 +80,20 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
     setKeyError(validationResult ? t(`scm-custom-properties-plugin.editor.key.${validationResult}`) : "");
   };
 
+  const checkIsAllowedValuesRequired = (valueMode: ValueMode, allowedValues: Option<string>[]) => {
+    if (valueMode === "MULTIPLE_CHOICE" && allowedValues.length === 0) {
+      setAllowedValuesRequiredError(t("scm-custom-properties-plugin.config.general.allowedValues.isRequiredError"));
+    } else {
+      setAllowedValuesRequiredError("");
+    }
+  };
+
   const onAllowedValueChange = (newAllowedValues: Option<string>[]) => {
     if (newAllowedValues.length !== 0 && !newAllowedValues.some((option) => option.value === defaultValue)) {
       setDefaultValue(newAllowedValues[0].value);
     }
+
+    checkIsAllowedValuesRequired(valueMode, newAllowedValues);
 
     setAllowedValues(newAllowedValues);
   };
@@ -108,6 +104,8 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
 
   const onValueModeChange = (newValue: ValueMode) => {
     setValueMode(newValue);
+
+    checkIsAllowedValuesRequired(newValue, allowedValues);
 
     if (
       newValue === "DEFAULT" &&
@@ -138,7 +136,11 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
     valueMode !== initialState.mode ||
     isAllowedValuesDirty();
 
-  const isValid = () => keyError === "" && key !== "" && (valueMode !== "DEFAULT" || defaultValue !== "");
+  const isValid = () =>
+    keyError === "" &&
+    key !== "" &&
+    (valueMode !== "DEFAULT" || defaultValue !== "") &&
+    (valueMode !== "MULTIPLE_CHOICE" || allowedValues.length > 0);
 
   const redirectBackToConfig = () => {
     history.push(redirectUrl);
@@ -176,17 +178,6 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
         </Field>
       </Row>
       <Row>
-        <ChipInputField<string>
-          className="column"
-          id={FORM_IDS.allowedValuesInput}
-          label={t("scm-custom-properties-plugin.config.general.allowedValues.label")}
-          information={t("scm-custom-properties-plugin.config.general.allowedValues.note")}
-          onChange={onAllowedValueChange}
-          value={allowedValues}
-          readOnly={isSubmitting}
-        />
-      </Row>
-      <Row>
         <fieldset className="field column">
           <Label as="legend" htmlFor={FORM_IDS.mandatoryOrDefaultInput}>
             {t("scm-custom-properties-plugin.config.general.mandatoryOrDefault.label")}
@@ -198,7 +189,7 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
               onValueChange={onValueModeChange}
               value={valueMode}
             >
-              {valueModes.map((value) => (
+              {valueModes.map((value: ValueMode) => (
                 <RadioGroup.Option
                   id={`${FORM_IDS.mandatoryOrDefaultInput}-${value}`}
                   form={FORM_IDS.form}
@@ -211,6 +202,22 @@ const PredefinedKeyEditor = ({ initial, existingPredefinedKeys, redirectUrl, sub
             </RadioGroup>
           </div>
         </fieldset>
+      </Row>
+      <Row>
+        <ChipInputField<string>
+          className="column"
+          id={FORM_IDS.allowedValuesInput}
+          label={t(
+            valueMode === "MULTIPLE_CHOICE"
+              ? "scm-custom-properties-plugin.config.general.allowedValues.labelRequired"
+              : "scm-custom-properties-plugin.config.general.allowedValues.label",
+          )}
+          information={t("scm-custom-properties-plugin.config.general.allowedValues.note")}
+          onChange={onAllowedValueChange}
+          value={allowedValues}
+          readOnly={isSubmitting}
+          error={allowedValuesRequiredError}
+        />
       </Row>
       {valueMode === "DEFAULT" ? (
         <Row>

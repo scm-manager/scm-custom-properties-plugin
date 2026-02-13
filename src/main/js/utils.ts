@@ -14,8 +14,4 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-package com.cloudogu.custom.properties.config;
-
-public enum ValueMode {
-  MANDATORY, DEFAULT, NONE, MULTIPLE_CHOICE
-}
+export const MULTIPLE_CHOICE_SEPARATOR = "\t";

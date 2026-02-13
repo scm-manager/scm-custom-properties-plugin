@@ -375,6 +375,13 @@ class CustomPropertiesServiceTest {
   @Nested
   class CreateCustomPropertyTest {
 
+    private void assertCustomPropertyCreateEvent(CustomProperty newProp) {
+      CustomPropertyCreateEvent event = (CustomPropertyCreateEvent) eventCaptor.getValue();
+      assertThat(event).isInstanceOf(CustomPropertyCreateEvent.class);
+      assertThat(event.getProperty()).isEqualTo(newProp);
+      assertThat(event.getRepository()).isEqualTo(repository);
+    }
+
     @Test
     void shouldThrowAlreadyExistsBecauseKeyIsAlreadyInUse() {
       store.put("key1", new CustomProperty("key1", "value1"));
@@ -401,12 +408,8 @@ class CustomPropertiesServiceTest {
 
       assertThat(store.get("key1")).isEqualTo(new CustomProperty("key1", "value1"));
 
-      CustomPropertyCreateEvent event = (CustomPropertyCreateEvent) eventCaptor.getValue();
-      assertThat(event).isInstanceOf(CustomPropertyCreateEvent.class);
-      assertThat(event.getProperty()).isEqualTo(new CustomProperty("key1", "value1"));
-      assertThat(event.getRepository()).isEqualTo(repository);
+      assertCustomPropertyCreateEvent(new CustomProperty("key1", "value1"));
     }
-
 
     @Test
     void shouldCreateNewCustomPropertyWithValidationDisabled() {
@@ -418,10 +421,7 @@ class CustomPropertiesServiceTest {
 
       assertThat(store.get("key1")).isEqualTo(new CustomProperty("key1", "value1"));
 
-      CustomPropertyCreateEvent event = (CustomPropertyCreateEvent) eventCaptor.getValue();
-      assertThat(event).isInstanceOf(CustomPropertyCreateEvent.class);
-      assertThat(event.getProperty()).isEqualTo(new CustomProperty("key1", "value1"));
-      assertThat(event.getRepository()).isEqualTo(repository);
+      assertCustomPropertyCreateEvent(new CustomProperty("key1", "value1"));
     }
 
     @Test
@@ -434,15 +434,74 @@ class CustomPropertiesServiceTest {
 
       assertThat(store.get("key1")).isEqualTo(new CustomProperty("key1", "value1"));
 
-      CustomPropertyCreateEvent event = (CustomPropertyCreateEvent) eventCaptor.getValue();
-      assertThat(event).isInstanceOf(CustomPropertyCreateEvent.class);
-      assertThat(event.getProperty()).isEqualTo(new CustomProperty("key1", "value1"));
-      assertThat(event.getRepository()).isEqualTo(repository);
+      assertCustomPropertyCreateEvent(new CustomProperty("key1", "value1"));
+    }
+
+    @Test
+    void shouldAllowMultipleChoicePropertyWithMultipleValues() {
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "Go", "C"), ValueMode.MULTIPLE_CHOICE, "")
+      ));
+      CustomProperty expected = new CustomProperty("lang", "Java\tGo\tC");
+
+      customPropertiesService.create(repository, expected);
+
+      assertThat(store.get("lang")).isEqualTo(expected);
+
+      assertCustomPropertyCreateEvent(expected);
+    }
+
+    @Test
+    void shouldAllowMultipleChoicePropertyWithSingleValue() {
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "Go", "C"), ValueMode.MULTIPLE_CHOICE, "")
+      ));
+      CustomProperty expected = new CustomProperty("lang", "C");
+
+      customPropertiesService.create(repository, expected);
+
+      assertThat(store.get("lang")).isEqualTo(expected);
+
+      assertCustomPropertyCreateEvent(expected);
+    }
+
+    @Test
+    void shouldThrowForMultipleChoicePropertyWithNoValue() {
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "Go", "C"), ValueMode.MULTIPLE_CHOICE, "")
+      ));
+      CustomProperty expected = new CustomProperty("lang", "");
+
+      assertThatThrownBy(() -> customPropertiesService.create(repository, expected))
+        .isInstanceOf(InvalidValueException.class);
+
+      verifyNoInteractions(eventBus);
+    }
+
+    @Test
+    void shouldThrowForMultipleChoicePropertyWithInvalidValue() {
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "Go", "C"), ValueMode.MULTIPLE_CHOICE, "")
+      ));
+      CustomProperty expected = new CustomProperty("lang", "Rust");
+
+      assertThatThrownBy(() -> customPropertiesService.create(repository, expected))
+        .isInstanceOf(InvalidValueException.class);
+
+      verifyNoInteractions(eventBus);
     }
   }
 
   @Nested
   class UpdateCustomPropertyTest {
+
+    private void assertCustomPropertyUpdateEvent(CustomProperty newProp, CustomProperty oldProp) {
+      CustomPropertyUpdateEvent event = (CustomPropertyUpdateEvent) eventCaptor.getValue();
+      assertThat(event).isInstanceOf(CustomPropertyUpdateEvent.class);
+      assertThat(event.getProperty()).isEqualTo(newProp);
+      assertThat(event.getPreviousProperty()).isEqualTo(Optional.of(oldProp));
+      assertThat(event.getRepository()).isEqualTo(repository);
+    }
 
     @Test
     void shouldThrowNotFoundBecauseCurrentKeyIsUnknown() {
@@ -487,11 +546,7 @@ class CustomPropertiesServiceTest {
       assertThat(store.get("old")).isEqualTo(newCustomProperty);
       assertThat(store.get("other")).isEqualTo(otherCustomProperty);
 
-      CustomPropertyUpdateEvent event = (CustomPropertyUpdateEvent) eventCaptor.getValue();
-      assertThat(event).isInstanceOf(CustomPropertyUpdateEvent.class);
-      assertThat(event.getProperty()).isEqualTo(newCustomProperty);
-      assertThat(event.getPreviousProperty()).isEqualTo(Optional.of(oldCustomProperty));
-      assertThat(event.getRepository()).isEqualTo(repository);
+      assertCustomPropertyUpdateEvent(newCustomProperty, oldCustomProperty);
     }
 
     @Test
@@ -508,11 +563,7 @@ class CustomPropertiesServiceTest {
       assertThat(store.get("new")).isEqualTo(newCustomProperty);
       assertThat(store.get("other")).isEqualTo(otherCustomProperty);
 
-      CustomPropertyUpdateEvent event = (CustomPropertyUpdateEvent) eventCaptor.getValue();
-      assertThat(event).isInstanceOf(CustomPropertyUpdateEvent.class);
-      assertThat(event.getProperty()).isEqualTo(newCustomProperty);
-      assertThat(event.getPreviousProperty()).isEqualTo(Optional.of(oldCustomProperty));
-      assertThat(event.getRepository()).isEqualTo(repository);
+      assertCustomPropertyUpdateEvent(newCustomProperty, oldCustomProperty);
     }
 
     @Test
@@ -529,11 +580,7 @@ class CustomPropertiesServiceTest {
       assertThat(store.get("new")).isEqualTo(newCustomProperty);
       assertThat(store.get("other")).isEqualTo(otherCustomProperty);
 
-      CustomPropertyUpdateEvent event = (CustomPropertyUpdateEvent) eventCaptor.getValue();
-      assertThat(event).isInstanceOf(CustomPropertyUpdateEvent.class);
-      assertThat(event.getProperty()).isEqualTo(newCustomProperty);
-      assertThat(event.getPreviousProperty()).isEqualTo(Optional.of(oldCustomProperty));
-      assertThat(event.getRepository()).isEqualTo(repository);
+      assertCustomPropertyUpdateEvent(newCustomProperty, oldCustomProperty);
     }
 
     @Test
@@ -567,11 +614,73 @@ class CustomPropertiesServiceTest {
       assertThat(store.get("new")).isEqualTo(newCustomProperty);
       assertThat(store.get("other")).isEqualTo(otherCustomProperty);
 
-      CustomPropertyUpdateEvent event = (CustomPropertyUpdateEvent) eventCaptor.getValue();
-      assertThat(event).isInstanceOf(CustomPropertyUpdateEvent.class);
-      assertThat(event.getProperty()).isEqualTo(newCustomProperty);
-      assertThat(event.getPreviousProperty()).isEqualTo(Optional.of(oldCustomProperty));
-      assertThat(event.getRepository()).isEqualTo(repository);
+      assertCustomPropertyUpdateEvent(newCustomProperty, oldCustomProperty);
+    }
+
+    @Test
+    void shouldAllowMultipleChoicePropertyWithMultipleValues() {
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "Go", "C"), ValueMode.MULTIPLE_CHOICE, "")
+      ));
+      CustomProperty oldProperty = new CustomProperty("lang", "C");
+      store.put(oldProperty.getKey(), oldProperty);
+
+      CustomProperty newProperty = new CustomProperty("lang", "Java\tGo\tC");
+
+      customPropertiesService.update(repository, oldProperty.getKey(), newProperty);
+
+      assertThat(store.get("lang")).isEqualTo(newProperty);
+
+      assertCustomPropertyUpdateEvent(newProperty, oldProperty);
+    }
+
+    @Test
+    void shouldAllowMultipleChoicePropertyWithSingleValue() {
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "Go", "C"), ValueMode.MULTIPLE_CHOICE, "")
+      ));
+      CustomProperty oldProperty = new CustomProperty("lang", "C");
+      store.put(oldProperty.getKey(), oldProperty);
+
+      CustomProperty newProperty = new CustomProperty("lang", "Java");
+
+      customPropertiesService.update(repository, oldProperty.getKey(), newProperty);
+
+      assertThat(store.get("lang")).isEqualTo(newProperty);
+
+      assertCustomPropertyUpdateEvent(newProperty, oldProperty);
+    }
+
+    @Test
+    void shouldThrowForMultipleChoicePropertyWithNoValue() {
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "Go", "C"), ValueMode.MULTIPLE_CHOICE, "")
+      ));
+      CustomProperty oldProperty = new CustomProperty("lang", "C");
+      store.put(oldProperty.getKey(), oldProperty);
+
+      CustomProperty newProperty = new CustomProperty("lang", "");
+
+      assertThatThrownBy(() -> customPropertiesService.update(repository, oldProperty.getKey(), newProperty))
+        .isInstanceOf(InvalidValueException.class);
+
+      verifyNoInteractions(eventBus);
+    }
+
+    @Test
+    void shouldThrowForMultipleChoicePropertyWithInvalidValue() {
+      when(configService.getAllPredefinedKeys(namespace)).thenReturn(Map.of(
+        "lang", new PredefinedKey(List.of("Java", "Go", "C"), ValueMode.MULTIPLE_CHOICE, "")
+      ));
+      CustomProperty oldProperty = new CustomProperty("lang", "C");
+      store.put(oldProperty.getKey(), oldProperty);
+
+      CustomProperty newProperty = new CustomProperty("lang", "Java\tRust\tC");
+
+      assertThatThrownBy(() -> customPropertiesService.update(repository, oldProperty.getKey(), newProperty))
+        .isInstanceOf(InvalidValueException.class);
+
+      verifyNoInteractions(eventBus);
     }
   }
 
