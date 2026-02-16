@@ -34,7 +34,6 @@ import { useCreateCustomProperty, useEditCustomProperty, useQueryPredefinedKeys 
 import { Row, Field, ButtonsContainer } from "../component/FormUtils";
 import { CustomProperty } from "../types";
 import { useHistory, useLocation } from "react-router";
-import { MULTIPLE_CHOICE_SEPARATOR } from "../utils";
 import { validateKey } from "../validation";
 import { urls } from "@scm-manager/ui-api";
 
@@ -84,6 +83,7 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
     key: "",
     value: "",
     _links: {},
+    separator: "\t",
     checkedValues: [],
   });
 
@@ -141,7 +141,7 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
     if (customProperty && data) {
       const checkedValues: CheckedValue[] =
         data?.[customProperty.key]?.mode === "MULTIPLE_CHOICE"
-          ? customProperty.value.split(MULTIPLE_CHOICE_SEPARATOR).map((value) => {
+          ? customProperty.value.split(customProperty.separator).map((value) => {
               return { value, isChecked: true };
             })
           : [];
@@ -150,6 +150,7 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
         key: customProperty.key,
         value: customProperty.value,
         _links: customProperty._links,
+        separator: customProperty.separator,
         checkedValues,
       });
       setKey(customProperty.key);
@@ -200,13 +201,13 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
   }, [data, keyFilter]);
 
   const transformInputsToCustomProperty = (): CustomProperty => {
-    const customProperty = { key, value, _links: initialState._links };
+    const customProperty = { key, value, _links: initialState._links, separator: initialState.separator };
 
     if (data?.[key]?.mode === "MULTIPLE_CHOICE") {
       customProperty.value = checkedValues
         .filter((checkedValue) => checkedValue.isChecked)
         .map((checkedValue) => checkedValue.value)
-        .join(MULTIPLE_CHOICE_SEPARATOR);
+        .join(customProperty.separator);
     }
 
     return customProperty;

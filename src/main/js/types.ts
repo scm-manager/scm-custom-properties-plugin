@@ -21,6 +21,7 @@ export type CustomProperty = {
   value: string;
   defaultProperty?: boolean;
   mandatory?: boolean;
+  separator: string;
 } & HalRepresentation;
 
 export const valueModes = ["NONE", "DEFAULT", "MANDATORY", "MULTIPLE_CHOICE"] as const;

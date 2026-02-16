@@ -26,6 +26,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import static com.cloudogu.custom.properties.CustomPropertiesContext.MULTIPLE_CHOICE_VALUE_SEPARATOR;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -36,6 +38,7 @@ public class WriteCustomPropertyDto extends HalRepresentation {
   @Pattern(regexp = "^[a-zA-Z_ 0-9.\\-:@/]*$")
   private String key;
   private String value;
+  private String separator = MULTIPLE_CHOICE_VALUE_SEPARATOR;
 
   @Override
   protected HalRepresentation add(Links links) {

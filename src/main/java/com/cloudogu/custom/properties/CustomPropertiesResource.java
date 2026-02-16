@@ -19,6 +19,7 @@ package com.cloudogu.custom.properties;
 import com.cloudogu.custom.properties.config.ConfigService;
 import com.cloudogu.custom.properties.config.PredefinedKeyDto;
 import com.cloudogu.custom.properties.config.PredefinedKeyMapper;
+import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
@@ -52,6 +53,7 @@ import sonia.scm.web.VndMediaType;
 import java.util.Collection;
 import java.util.Map;
 
+import static com.cloudogu.custom.properties.CustomPropertiesContext.MULTIPLE_CHOICE_VALUE_SEPARATOR;
 import static sonia.scm.NotFoundException.notFound;
 
 @OpenAPIDefinition(tags = {
@@ -108,13 +110,15 @@ public class CustomPropertiesResource {
     )
   )
   @Produces(MediaType.APPLICATION_JSON)
-  public Collection<CustomPropertyDto> read(@PathParam("namespace") String namespace, @PathParam("name") String name) {
+  public Collection<CustomPropertyDto> read(@PathParam("namespace") String namespace,
+                                            @PathParam("name") String name,
+                                            @DefaultValue(MULTIPLE_CHOICE_VALUE_SEPARATOR) @QueryParam("separator") String separator) {
     checkIsFeatureEnabled();
     Repository repository = tryToGetRepository(namespace, name);
     RepositoryPermissions.read(repository).check();
 
     Collection<CustomProperty> entities = service.get(repository);
-    return customPropertyMapper.mapToDtoCollection(entities, repository);
+    return customPropertyMapper.mapToDtoCollection(entities, repository, separator);
   }
 
   @POST
@@ -139,8 +143,8 @@ public class CustomPropertiesResource {
   )
   @Consumes(PROPERTY_KEY_VALUE_MEDIA_TYPE)
   public void create(@PathParam("namespace") String namespace,
-                         @PathParam("name") String name,
-                         @NotNull @Valid WriteCustomPropertyDto contentDto) {
+                     @PathParam("name") String name,
+                     @NotNull @Valid WriteCustomPropertyDto contentDto) {
     checkIsFeatureEnabled();
     Repository repository = tryToGetRepository(namespace, name);
     RepositoryPermissions.modify(repository).check();
@@ -202,9 +206,9 @@ public class CustomPropertiesResource {
   )
   @Consumes(PROPERTY_KEY_VALUE_MEDIA_TYPE)
   public void update(@PathParam("namespace") String namespace,
-                         @PathParam("name") String name,
-                         @PathParam("key") String key,
-                         @NotNull @Valid WriteCustomPropertyDto replacementDto) {
+                     @PathParam("name") String name,
+                     @PathParam("key") String key,
+                     @NotNull @Valid WriteCustomPropertyDto replacementDto) {
     checkIsFeatureEnabled();
     Repository repository = tryToGetRepository(namespace, name);
     RepositoryPermissions.modify(repository).check();
@@ -233,8 +237,8 @@ public class CustomPropertiesResource {
   @DELETE
   @Path("/{namespace}/{name}/{key}")
   public void delete(@PathParam("namespace") String namespace,
-                         @PathParam("name") String name,
-                         @PathParam("key") String key) {
+                     @PathParam("name") String name,
+                     @PathParam("key") String key) {
     checkIsFeatureEnabled();
     Repository repository = tryToGetRepository(namespace, name);
     RepositoryPermissions.modify(repository).check();
@@ -248,8 +252,15 @@ public class CustomPropertiesResource {
       Returns a list of repositories, if it contains custom properties that matches all the supplied filters.
       The filters are applied in a case insensitive way.
       
-      The filters also support multiple choice values, by concatenating the values via tab stop character (ie. `\\t`).
-      The `\\t` should be encoded as `%09` for the use in a query parameter.
+      The filters also support multiple choice values, by using a separation character.
+      The separation character can be specified with the `separator` query parameter.
+      If the `separator` parameter is not set, then the default character is used, which is the tab stop character (`\\t`).
+      The separation character might need to be URL encoded.
+      The encoding of `\\t` would be `%09`.
+      The following characters are not allowed to be used as a separation character, because their use is reserved for other purposes:
+      - `?`
+      - `*`
+      - `=`
       The order of the multiple choice values is not considered.
       
       The filters also support the `?` and `*` wildcards.
@@ -266,6 +277,9 @@ public class CustomPropertiesResource {
       
       If you want to search for repositories that have at least one property with the key Language and the values Java and TypeScript:
       `?property=Language=Java%09TypeScript`
+      
+      If you want to use a semicolon as a separation character:
+      `?property=Language=Java;TypeScript&separator=;`
       
       If you want to additionally exclude archived repositories from the result set:
       `?excludeArchived=true`
@@ -299,17 +313,21 @@ public class CustomPropertiesResource {
                                                                              @QueryParam("value") String value,
                                                                              @QueryParam("property") @Pattern(regexp = ".+=.+", message = "Property must match the format <key>=<value>") String property,
                                                                              @QueryParam("excludeArchived") boolean excludeArchived,
-                                                                             @QueryParam("includeProps") boolean includeProps) {
+                                                                             @QueryParam("includeProps") boolean includeProps,
+                                                                             @QueryParam("separator") @Pattern(regexp = "^[^?*=]*$", message = "The characters '?', '*' and '=' are not allowed as a separator") @DefaultValue(MULTIPLE_CHOICE_VALUE_SEPARATOR) String separator) {
     checkIsFeatureEnabled();
 
     CustomPropertiesSearchService.Filter filter = new CustomPropertiesSearchService.Filter(
-      key, value, property, excludeArchived
+      key,
+      applySeparatorForValue(value, separator),
+      applySeparatorForProperty(property, separator),
+      excludeArchived
     );
 
     return searchService.findRepositoriesWithCustomProperties(filter)
       .stream()
       .map(
-        repoWithProps -> repositoryMapper.map(repoWithProps.repository(), repoWithProps.props(), includeProps)
+        repoWithProps -> repositoryMapper.map(repoWithProps.repository(), repoWithProps.props(), includeProps, separator)
       )
       .toList();
   }
@@ -330,4 +348,24 @@ public class CustomPropertiesResource {
     return repository;
   }
 
+  private String applySeparatorForValue(String value, String separator) {
+    if (Strings.isNullOrEmpty(value) || separator.equals(MULTIPLE_CHOICE_VALUE_SEPARATOR)) {
+      return value;
+    }
+
+    return value.replace(separator, MULTIPLE_CHOICE_VALUE_SEPARATOR);
+  }
+
+  private String applySeparatorForProperty(String property, String separator) {
+    if (Strings.isNullOrEmpty(property) || separator.equals(MULTIPLE_CHOICE_VALUE_SEPARATOR)) {
+      return property;
+    }
+
+    String[] keyAndValues = property.split("=", 2);
+    if (!keyAndValues[1].contains(separator)) {
+      return property;
+    }
+
+    return String.join("=", keyAndValues[0], keyAndValues[1].replace(separator, MULTIPLE_CHOICE_VALUE_SEPARATOR));
+  }
 }

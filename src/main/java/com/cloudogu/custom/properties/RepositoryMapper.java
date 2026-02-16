@@ -48,14 +48,14 @@ public abstract class RepositoryMapper {
   }
 
   @Mapping(target = "attributes", ignore = true)
-  public abstract BasicRepositoryDto map(Repository repository, @Context Collection<CustomProperty> customProps, @Context boolean withProps);
+  public abstract BasicRepositoryDto map(Repository repository, @Context Collection<CustomProperty> customProps, @Context boolean withProps, @Context String separator);
 
   @ObjectFactory
-  BasicRepositoryDto createDto(Repository repository, @Context Collection<CustomProperty> customProps, @Context boolean withProps) {
+  BasicRepositoryDto createDto(Repository repository, @Context Collection<CustomProperty> customProps, @Context boolean withProps, @Context String separator) {
     BasicRepositoryDto dto = new BasicRepositoryDto();
 
     if (withProps) {
-      dto.withEmbedded("customProperties", customPropertyMapper.mapToDtoCollection(customProps, repository));
+      dto.withEmbedded("customProperties", customPropertyMapper.mapToDtoCollection(customProps, repository, separator));
     }
 
     appendLinks(dto, repository);

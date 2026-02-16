@@ -29,6 +29,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import sonia.scm.api.v2.resources.RepositoryLinkProvider;
@@ -40,6 +42,7 @@ import sonia.scm.store.ConfigurationEntryStoreFactory;
 import sonia.scm.store.DataStore;
 import sonia.scm.store.InMemoryByteConfigurationEntryStoreFactory;
 import sonia.scm.store.InMemoryByteConfigurationStoreFactory;
+import sonia.scm.web.JsonMockHttpRequest;
 import sonia.scm.web.JsonMockHttpResponse;
 import sonia.scm.web.RestDispatcher;
 
@@ -279,8 +282,66 @@ class CustomPropertiesResourceTest {
       dispatcher.invoke(request, response);
 
       assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      assertThat(response.getContentAsString().translateEscapes()).isEqualTo("""
+        [{"key":"hello","value":"world","separator":"\t","defaultProperty":false,"mandatory":false}]""");
+    }
+
+    @Test
+    @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
+    void shouldReturnPropWithMultipleValues() throws URISyntaxException, UnsupportedEncodingException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      store.put(new CustomProperty("hello", "world\twelt"));
+
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      assertThat(response.getContentAsString().translateEscapes()).isEqualTo("""
+        [{"key":"hello","value":"world\twelt","separator":"\t","defaultProperty":false,"mandatory":false}]""");
+    }
+
+    @Test
+    @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
+    void shouldUseDefaultValueForSeparator() throws URISyntaxException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      store.put(new CustomProperty("hello", "world\twelt\tмир"));
+
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+
+      //Using the response body for matching, because otherwise the \t contained within value are matched false negatively
+      JsonNode responseBody = response.getContentAsJson();
+      assertThat(responseBody.isArray()).isTrue();
+      assertThat(responseBody.size()).isEqualTo(1);
+      assertThat(responseBody.get(0).get("key").asText()).isEqualTo("hello");
+      assertThat(responseBody.get(0).get("value").asText()).isEqualTo("world\twelt\tмир");
+      assertThat(responseBody.get(0).get("defaultProperty").asBoolean()).isFalse();
+      assertThat(responseBody.get(0).get("mandatory").asBoolean()).isFalse();
+    }
+
+    @Test
+    @SubjectAware(value = "hasReadPermissions", permissions = "repository:read:*")
+    void shouldApplyProvidedSeparator() throws URISyntaxException, UnsupportedEncodingException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      store.put(new CustomProperty("hello", "world\twelt\tмир"));
+
+      String uri = format("/v2/custom-properties/%s/%s?separator=;", repository.getNamespace(), repository.getName());
+      MockHttpRequest request = MockHttpRequest.get(uri);
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
       assertThat(response.getContentAsString()).isEqualTo("""
-        [{"key":"hello","value":"world","defaultProperty":false,"mandatory":false}]""");
+        [{"key":"hello","value":"world;welt;мир","separator":";","defaultProperty":false,"mandatory":false}]""");
     }
 
     @Test
@@ -299,8 +360,8 @@ class CustomPropertiesResourceTest {
       dispatcher.invoke(request, response);
 
       assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
-      assertThat(response.getContentAsString()).isEqualTo("""
-        [{"key":"hello","value":"world","defaultProperty":true,"mandatory":false}]""");
+      assertThat(response.getContentAsString().translateEscapes()).isEqualTo("""
+        [{"key":"hello","value":"world","separator":"\t","defaultProperty":true,"mandatory":false}]""");
     }
 
     @Test
@@ -369,6 +430,26 @@ class CustomPropertiesResourceTest {
 
       assertThat(values).hasSize(1);
       assertThat(values.get("hello").getValue()).isEqualTo("world");
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldReplaceSuppliedSeparatorWithDefaultSeparator() throws URISyntaxException {
+      String uri = format("/v2/custom-properties/%s/%s", repository.getNamespace(), repository.getName());
+      JsonMockHttpRequest request = JsonMockHttpRequest.post(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.json("{'key': 'hello', 'value': 'world;welt;мир', 'separator': ';'}");
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NO_CONTENT.getStatusCode());
+
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      Map<String, CustomProperty> values = store.getAll();
+
+      assertThat(values).hasSize(1);
+      assertThat(values.get("hello").getValue()).isEqualTo("world\twelt\tмир");
     }
 
     @Test
@@ -639,6 +720,28 @@ class CustomPropertiesResourceTest {
 
     @Test
     @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
+    void shouldReplaceSuppliedSeparatorWithDefaultSeparator() throws URISyntaxException {
+      DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
+      store.put("hello", new CustomProperty("hello", "world"));
+
+      String uri = format("/v2/custom-properties/%s/%s/%s", repository.getNamespace(), repository.getName(), "hello");
+      JsonMockHttpRequest request = JsonMockHttpRequest.put(uri);
+      request.contentType(CustomPropertiesResource.PROPERTY_KEY_VALUE_MEDIA_TYPE);
+      request.json("{'key': 'hello', 'value': 'world;welt;мир', 'separator': ';'}");
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(NO_CONTENT.getStatusCode());
+
+      Map<String, CustomProperty> result = store.getAll();
+
+      assertThat(result).hasSize(1);
+      assertThat(result.get("hello").getValue()).isEqualTo("world\twelt\tмир");
+    }
+
+    @Test
+    @SubjectAware(value = "hasModifyAndReadPermissions", permissions = {"repository:modify:*", "repository:read:*"})
     void shouldSupportAllKeys() throws URISyntaxException {
       DataStore<CustomProperty> store = storeFactory.withType(CustomProperty.class).withName("custom-properties").forRepository(repository).build();
       store.put("hello", new CustomProperty("hello", "world"));
@@ -799,6 +902,24 @@ class CustomPropertiesResourceTest {
   @Nested
   class FindRepositoriesWithCustomProperties {
 
+    private void assertRepository(JsonNode responseBody, Repository repository, String expectedSelfLink, boolean withEmbedded) {
+      assertThat(responseBody.isArray()).isTrue();
+      assertThat(responseBody.size()).isEqualTo(1);
+      assertThat(responseBody.get(0).get("namespace").asText()).isEqualTo(repository.getNamespace());
+      assertThat(responseBody.get(0).get("name").asText()).isEqualTo(repository.getName());
+      assertThat(responseBody.get(0).get("type").asText()).isEqualTo(repository.getType());
+      assertThat(responseBody.get(0).get("description").asText()).isEqualTo(repository.getDescription());
+      assertThat(responseBody.get(0).get("contact").asText()).isEqualTo(repository.getContact());
+      assertThat(responseBody.get(0).get("archived").asBoolean()).isEqualTo(repository.isArchived());
+      assertThat(responseBody.get(0).get("_links").get("self").get("href").asText()).isEqualTo(expectedSelfLink);
+
+      if (withEmbedded) {
+        assertThat(responseBody.get(0).get("_embedded")).isNotNull();
+      } else {
+        assertThat(responseBody.get(0).get("_embedded")).isNull();
+      }
+    }
+
     @Test
     @SubjectAware(value = "Trainer Red")
     void shouldReturnForbiddenBecauseFeatureIsDisabled() throws URISyntaxException {
@@ -818,6 +939,22 @@ class CustomPropertiesResourceTest {
     @SubjectAware(value = "Trainer Red")
     void shouldReturnBadRequestBecausePropertyIsNotInProperFormat() throws URISyntaxException {
       MockHttpRequest request = MockHttpRequest.get("/v2/custom-properties/repositories?property=key;value");
+      MockHttpResponse response = new MockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(BAD_REQUEST.getStatusCode());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+      "?", "a?b", "?a", "a?",
+      "*", "a*b", "*a", "a*",
+      "=", "a=b", "=a", "a=",
+    })
+    @SubjectAware(value = "Trainer Red")
+    void shouldReturnBadRequestBecauseSeparatorIsUsingForbiddenCharacter(String separator) throws URISyntaxException {
+      MockHttpRequest request = MockHttpRequest.get("/v2/custom-properties/repositories?separator=" + separator);
       MockHttpResponse response = new MockHttpResponse();
 
       dispatcher.invoke(request, response);
@@ -850,18 +987,35 @@ class CustomPropertiesResourceTest {
       dispatcher.invoke(request, response);
 
       assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
-      JsonNode responseBody = response.getContentAsJson();
+      assertRepository(response.getContentAsJson(), repository, expectedSelfLink, false);
+    }
 
-      assertThat(responseBody.isArray()).isTrue();
-      assertThat(responseBody.size()).isEqualTo(1);
-      assertThat(responseBody.get(0).get("namespace").asText()).isEqualTo(repository.getNamespace());
-      assertThat(responseBody.get(0).get("name").asText()).isEqualTo(repository.getName());
-      assertThat(responseBody.get(0).get("type").asText()).isEqualTo(repository.getType());
-      assertThat(responseBody.get(0).get("description").asText()).isEqualTo(repository.getDescription());
-      assertThat(responseBody.get(0).get("contact").asText()).isEqualTo(repository.getContact());
-      assertThat(responseBody.get(0).get("archived").asBoolean()).isEqualTo(repository.isArchived());
-      assertThat(responseBody.get(0).get("_links").get("self").get("href").asText()).isEqualTo(expectedSelfLink);
-      assertThat(responseBody.get(0).get("_embedded")).isNull();
+    @Test
+    @SubjectAware(value = "Trainer Red")
+    void shouldReplaceSuppliedSeparatorWithDefaultSeparator() throws URISyntaxException {
+      GlobalConfig enabledConfig = new GlobalConfig();
+      enabledConfig.setEnabled(true);
+      configService.setGlobalConfig(enabledConfig);
+
+      CustomPropertiesSearchService.Filter expectedFilter = new CustomPropertiesSearchService.Filter(
+        null, "java\tgo\tc", "lang=java\tgo\tc", false
+      );
+      String expectedSelfLink = String.format("/scm/api/v2/repositories/%s/%s", repository.getNamespace(), repository.getName());
+
+      when(searchService.findRepositoriesWithCustomProperties(expectedFilter)).thenReturn(
+        List.of(new CustomPropertiesSearchService.RepositoryWithProps(repository, List.of()))
+      );
+      when(repositoryLinkProvider.get(repository.getNamespaceAndName())).thenReturn(expectedSelfLink);
+
+      MockHttpRequest request = MockHttpRequest.get(
+        "/v2/custom-properties/repositories?value=java;go;c&property=lang=java;go;c&separator=;"
+      );
+      JsonMockHttpResponse response = new JsonMockHttpResponse();
+
+      dispatcher.invoke(request, response);
+
+      assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
+      assertRepository(response.getContentAsJson(), repository, expectedSelfLink, false);
     }
 
     @Test
@@ -889,17 +1043,7 @@ class CustomPropertiesResourceTest {
       dispatcher.invoke(request, response);
 
       assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
-      JsonNode responseBody = response.getContentAsJson();
-      assertThat(responseBody.isArray()).isTrue();
-      assertThat(responseBody.size()).isEqualTo(1);
-      assertThat(responseBody.get(0).get("namespace").asText()).isEqualTo(repository.getNamespace());
-      assertThat(responseBody.get(0).get("name").asText()).isEqualTo(repository.getName());
-      assertThat(responseBody.get(0).get("type").asText()).isEqualTo(repository.getType());
-      assertThat(responseBody.get(0).get("description").asText()).isEqualTo(repository.getDescription());
-      assertThat(responseBody.get(0).get("contact").asText()).isEqualTo(repository.getContact());
-      assertThat(responseBody.get(0).get("archived").asBoolean()).isEqualTo(repository.isArchived());
-      assertThat(responseBody.get(0).get("_links").get("self").get("href").asText()).isEqualTo(expectedSelfLink);
-      assertThat(responseBody.get(0).get("_embedded")).isNull();
+      assertRepository(response.getContentAsJson(), repository, expectedSelfLink, false);
     }
 
     @Test
@@ -921,7 +1065,7 @@ class CustomPropertiesResourceTest {
       when(repositoryLinkProvider.get(repository.getNamespaceAndName())).thenReturn(expectedSelfLink);
 
       MockHttpRequest request = MockHttpRequest.get(
-        "/v2/custom-properties/repositories?includeProps=true"
+        "/v2/custom-properties/repositories?includeProps=true&separator=;"
       );
       JsonMockHttpResponse response = new JsonMockHttpResponse();
 
@@ -929,14 +1073,7 @@ class CustomPropertiesResourceTest {
 
       assertThat(response.getStatus()).isEqualTo(OK.getStatusCode());
       JsonNode responseBody = response.getContentAsJson();
-      assertThat(responseBody.isArray()).isTrue();
-      assertThat(responseBody.size()).isEqualTo(1);
-      assertThat(responseBody.get(0).get("namespace").asText()).isEqualTo(repository.getNamespace());
-      assertThat(responseBody.get(0).get("name").asText()).isEqualTo(repository.getName());
-      assertThat(responseBody.get(0).get("type").asText()).isEqualTo(repository.getType());
-      assertThat(responseBody.get(0).get("description").asText()).isEqualTo(repository.getDescription());
-      assertThat(responseBody.get(0).get("contact").asText()).isEqualTo(repository.getContact());
-      assertThat(responseBody.get(0).get("archived").asBoolean()).isEqualTo(repository.isArchived());
+      assertRepository(responseBody, repository, expectedSelfLink, true);
 
       assertThat(responseBody.get(0).get("_embedded").get("customProperties").isArray()).isTrue();
       assertThat(responseBody.get(0).get("_embedded").get("customProperties").size()).isEqualTo(1);
@@ -948,8 +1085,8 @@ class CustomPropertiesResourceTest {
         .isEqualTo(expectedCustomProperty.isDefaultProperty());
       assertThat(responseBody.get(0).get("_embedded").get("customProperties").get(0).get("mandatory").asBoolean())
         .isEqualTo(expectedCustomProperty.isMandatory());
-
-      assertThat(responseBody.get(0).get("_links").get("self").get("href").asText()).isEqualTo(expectedSelfLink);
+      assertThat(responseBody.get(0).get("_embedded").get("customProperties").get(0).get("separator").asText())
+        .isEqualTo(";");
     }
   }
 }

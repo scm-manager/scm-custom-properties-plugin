@@ -70,7 +70,7 @@ public class RepositoryEnricher implements HalEnricher {
 
     Collection<CustomProperty> properties = customPropertiesService.get(repository);
     CustomPropertyCollection collection = new CustomPropertyCollection(
-      properties.stream().map(customProperty -> customPropertyMapper.map(customProperty, repository)).toList(),
+      customPropertyMapper.mapToDtoCollection(properties, repository),
       createCollectionLinks(new LinkBuilder(pathInfoStore.get().get(), CustomPropertiesResource.class), repository)
     );
     appender.appendEmbedded("customProperties", collection);

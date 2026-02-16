@@ -22,6 +22,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import static com.cloudogu.custom.properties.CustomPropertiesContext.MULTIPLE_CHOICE_VALUE_SEPARATOR;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -32,7 +34,7 @@ public class CustomPropertyDto extends WriteCustomPropertyDto {
   private boolean isMandatory;
 
   public CustomPropertyDto(String key, String value, boolean isDefaultProperty) {
-    super(key, value);
+    super(key, value, MULTIPLE_CHOICE_VALUE_SEPARATOR);
     this.isDefaultProperty = isDefaultProperty;
   }
 }

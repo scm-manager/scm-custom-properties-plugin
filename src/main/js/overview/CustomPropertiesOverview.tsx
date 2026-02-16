@@ -33,7 +33,6 @@ import CenteredTableFooter from "../component/CenteredTableFooter";
 import MinWidthTableCell from "../component/MinWidthTableCell";
 import PropertyTag from "../component/PropertyTag";
 import { useLocation } from "react-router";
-import { MULTIPLE_CHOICE_SEPARATOR } from "../utils";
 
 type CustomPropertyActionProps = {
   repository: Repository;
@@ -212,10 +211,10 @@ const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({
             <tr key={property.key}>
               <td>{property.key}</td>
               <td>
-                {property.value.includes(MULTIPLE_CHOICE_SEPARATOR) ? (
+                {property.value.includes(property.separator) ? (
                   <ul>
                     {property.value
-                      .split(MULTIPLE_CHOICE_SEPARATOR)
+                      .split(property.separator)
                       .sort((a, b) => a.localeCompare(b))
                       .map((value) => (
                         <li key={`${property.key}-${value}`}>{value}</li>
