@@ -1,2 +1,0 @@
-- type: added
-  description: REST-API endpoint to fetch every repository that matches custom property filters for key, value and key value pair
