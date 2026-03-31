@@ -27,7 +27,7 @@ dependencies {
 scmPlugin {
   scmVersion = "3.7.0"
   displayName = "Custom Properties"
-  description = "Plugin to add user-defined properties to a repository as a key-value structure"
+  description = "Add user-defined properties to a repository as a key-value structure"
 
   // author = "Your name"
   // category = "Workflow"

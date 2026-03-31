@@ -4,10 +4,10 @@
   </a>
 </p>
 <h1 align="center">
-  Custom Properties
+  Custom Properties Plugin
 </h1>
 
-Plugin to add arbitrary custom properties to a repository, as a key-value structure
+Add arbitrary custom properties to a repository, as a key-value structure
 
 ## Usage
 
