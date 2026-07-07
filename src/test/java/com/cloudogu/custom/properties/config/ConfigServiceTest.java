@@ -246,5 +246,45 @@ class ConfigServiceTest {
         entry("lang", new PredefinedKey(List.of("Rust", "Go")))
       );
     }
+
+    @Test
+    void shouldReadGlobalConfigurationUpdatesFromOtherServiceInstances() {
+      ConfigurationStoreFactory configurationStoreFactory = new InMemoryByteConfigurationStoreFactory();
+      ConfigService readingService = new ConfigService(configurationStoreFactory);
+      ConfigService writingService = new ConfigService(configurationStoreFactory);
+
+      GlobalConfig globalConfig = new GlobalConfig();
+      globalConfig.setPredefinedKeys(
+        Map.of(
+          "lang", new PredefinedKey(List.of(), "Java")
+        )
+      );
+      writingService.setGlobalConfig(globalConfig);
+
+      Map<String, PredefinedKey> result = readingService.getAllPredefinedKeys(NAMESPACE);
+      assertThat(result).containsOnly(
+        entry("lang", new PredefinedKey(List.of(), "Java"))
+      );
+    }
+
+    @Test
+    void shouldReadNamespaceConfigurationUpdatesFromOtherServiceInstances() {
+      ConfigurationStoreFactory configurationStoreFactory = new InMemoryByteConfigurationStoreFactory();
+      ConfigService readingService = new ConfigService(configurationStoreFactory);
+      ConfigService writingService = new ConfigService(configurationStoreFactory);
+
+      NamespaceConfig namespaceConfig = new NamespaceConfig();
+      namespaceConfig.setPredefinedKeys(
+        Map.of(
+          "lang", new PredefinedKey(List.of(), "Java")
+        )
+      );
+      writingService.setNamespaceConfig(NAMESPACE, namespaceConfig);
+
+      Map<String, PredefinedKey> result = readingService.getAllPredefinedKeys(NAMESPACE);
+      assertThat(result).containsOnly(
+        entry("lang", new PredefinedKey(List.of(), "Java"))
+      );
+    }
   }
 }

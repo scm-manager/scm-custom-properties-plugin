@@ -28,21 +28,15 @@ public class ConfigService {
 
   private static final String CONFIG_STORE_NAME = "custom-properties-config";
 
-  private final ConfigurationStore<GlobalConfig> globalConfigStore;
   private final ConfigurationStoreFactory configStoreFactory;
 
   @Inject
   public ConfigService(ConfigurationStoreFactory configurationStoreFactory) {
-    this.globalConfigStore = configurationStoreFactory
-      .withType(GlobalConfig.class)
-      .withName(CONFIG_STORE_NAME)
-      .build();
-
     this.configStoreFactory = configurationStoreFactory;
   }
 
   public GlobalConfig getGlobalConfig() {
-    return globalConfigStore.getOptional().orElseGet(GlobalConfig::new);
+    return getGlobalConfigStore().getOptional().orElseGet(GlobalConfig::new);
   }
 
   public void setGlobalConfig(GlobalConfig globalConfig) {
@@ -54,7 +48,7 @@ public class ConfigService {
       throw new InvalidMultipleChoiceException(entry.getKey());
     });
 
-    globalConfigStore.set(globalConfig);
+    getGlobalConfigStore().set(globalConfig);
   }
 
   public NamespaceConfig getNamespaceConfig(String namespace) {
@@ -96,6 +90,13 @@ public class ConfigService {
       .withType(NamespaceConfig.class)
       .withName(CONFIG_STORE_NAME)
       .forNamespace(namespace)
+      .build();
+  }
+
+  private ConfigurationStore<GlobalConfig> getGlobalConfigStore() {
+    return configStoreFactory
+      .withType(GlobalConfig.class)
+      .withName(CONFIG_STORE_NAME)
       .build();
   }
 
