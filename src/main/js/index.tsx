@@ -16,18 +16,22 @@
 
 import React from "react";
 import { binder, extensionPoints } from "@scm-manager/ui-extensions";
-import { Route } from "react-router";
+import { ConfigurationBinder as cfgBinder } from "@scm-manager/ui-components";
+import { Navigate } from "react-router-dom";
+import { getRepositoryBaseUrl, useRepositoryFromParams } from "@scm-manager/ui-core";
 import { Repository } from "@scm-manager/ui-types";
 import CustomPropertiesOverview from "./overview/CustomPropertiesOverview";
 import CustomPropertiesNavLink from "./overview/CustomPropertiesNavLink";
-import CustomPropertiesEditor from "./overview/CustomPropertiesEditor";
 import CustomPropertyHitRenderer from "./search/CustomPropertyHitRenderer";
-import bindGlobalConfig from "./config/GlobalConfigRouteSetup";
-import bindNamespaceConfig from "./config/NamespaceConfigRouteSetup";
 import MissingPropertyBanner from "./banner/MissingPropertyBanner";
+import GlobalConfiguration from "./config/GlobalConfiguration";
+import NamespaceConfiguration from "./config/NamespaceConfiguration";
 
-const CustomPropertiesPredicate = ({ repository }: { repository: Repository }) => {
-  return repository._embedded?.customProperties;
+const configLinkName = "customPropertiesConfig";
+const navLinkLabel = "scm-custom-properties-plugin.navLink";
+
+export const CustomPropertiesPredicate = ({ repository }: { repository: Repository }) => {
+  return !!repository?._embedded?.customProperties;
 };
 
 binder.bind<extensionPoints.RepositoryNavigation>(
@@ -36,35 +40,22 @@ binder.bind<extensionPoints.RepositoryNavigation>(
   CustomPropertiesPredicate,
 );
 
-const CustomPropertiesRoute = ({ url, repository }: { url: string; repository: Repository }) => {
-  return (
-    //@ts-expect-error will be irrelevant with react 19 upgrade
-    <Route
-      path={`${url}/custom-properties`}
-      exact
-      render={() => {
-        return <CustomPropertiesOverview repository={repository} />;
-      }}
-    />
-  );
+const CustomPropertiesOverviewRoute = () => {
+  const repository = useRepositoryFromParams();
+  if (!repository._embedded?.customProperties) {
+    return <Navigate to={getRepositoryBaseUrl(repository)} replace />;
+  }
+  return <CustomPropertiesOverview repository={repository} />;
 };
-binder.bind("repository.route", CustomPropertiesRoute, CustomPropertiesPredicate);
 
-const CustomPropertiesEditorRoute = ({ url, repository }: { url: string; repository: Repository }) => {
-  return (
-    //@ts-expect-error will be irrelevant with react 19 upgrade
-    <Route
-      path={`${url}/custom-properties/modify`}
-      exact
-      render={() => <CustomPropertiesEditor repository={repository} />}
-    />
-  );
-};
-binder.bind("repository.route", CustomPropertiesEditorRoute, CustomPropertiesPredicate);
+const CustomPropertiesRepositoryRoutes: extensionPoints.RepositoryRoute["type"] = () => [
+  { path: "custom-properties", element: <CustomPropertiesOverviewRoute /> },
+];
+binder.bind<extensionPoints.RepositoryRoute>("repository.route", CustomPropertiesRepositoryRoutes);
 
-binder.bind("repository.banner", MissingPropertyBanner);
+binder.bind("repository.banner", MissingPropertyBanner, CustomPropertiesPredicate);
 
 binder.bind("search.hit.indexedCustomProperty.renderer", CustomPropertyHitRenderer);
 
-bindGlobalConfig();
-bindNamespaceConfig();
+cfgBinder.bindAdminSetting("/custom-properties", navLinkLabel, configLinkName, GlobalConfiguration);
+cfgBinder.bindNamespaceSetting("/custom-properties", navLinkLabel, configLinkName, NamespaceConfiguration);

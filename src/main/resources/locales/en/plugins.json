@@ -4,6 +4,7 @@
     "config": {
       "title": "Custom Properties Configuration",
       "edit": "Edit",
+      "submitSuccess": "The configuration was saved successfully.",
       "general": {
         "submit": "Submit",
         "cancel": "Cancel",
@@ -58,7 +59,8 @@
         "subtitle": "General Settings"
       },
       "predefinedKeys": {
-        "subtitle": "Predefined Custom Properties"
+        "subtitle": "Predefined Custom Properties",
+        "empty": "No custom properties have been predefined yet."
       },
       "template": {
         "global": "Global Template",
@@ -117,6 +119,7 @@
       }
     },
     "table": {
+      "empty": "No custom properties have been set for this repository yet.",
       "header": {
         "key": "Key",
         "value": "Value",

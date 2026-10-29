@@ -26,10 +26,9 @@ const MinWidthDiv = styled.div`
   width: fit-content;
 `;
 
-const MinWidthTableCell: FC<{ children?: React.ReactNode }> = ({ children }) => {
+const MinWidthTableCell: FC<{ children?: React.ReactNode; label?: string }> = ({ children, label }) => {
   return (
-    <MinWidthTableData>
-      {/* @ts-expect-error */}
+    <MinWidthTableData data-label={label}>
       <MinWidthDiv>{children}</MinWidthDiv>
     </MinWidthTableData>
   );

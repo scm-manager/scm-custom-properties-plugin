@@ -4,6 +4,7 @@
     "config": {
       "title": "Konfiguration für Custom Properties",
       "edit": "Bearbeitung",
+      "submitSuccess": "Die Konfiguration wurde erfolgreich gespeichert.",
       "general": {
         "submit": "Speichern",
         "cancel": "Abbrechen",
@@ -58,7 +59,8 @@
         "subtitle": "Allgemeine Einstellungen"
       },
       "predefinedKeys": {
-        "subtitle": "Vordefinierte Custom Properties"
+        "subtitle": "Vordefinierte Custom Properties",
+        "empty": "Es wurden noch keine Custom Properties vordefiniert."
       },
       "template": {
         "global": "Globale Vorlage",
@@ -117,6 +119,7 @@
       }
     },
     "table": {
+      "empty": "Für dieses Repository wurden noch keine Custom Properties gesetzt.",
       "header": {
         "key": "Schlüssel",
         "value": "Wert",

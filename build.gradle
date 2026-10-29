@@ -25,7 +25,7 @@ dependencies {
 }
 
 scmPlugin {
-  scmVersion = "3.7.0"
+  scmVersion = "4.0.0-SNAPSHOT"
   displayName = "Custom Properties"
   description = "Add user-defined properties to a repository as a key-value structure"
 

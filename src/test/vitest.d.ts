@@ -14,22 +14,6 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import React, { FC } from "react";
-import { Icon, LinkButton } from "@scm-manager/ui-core";
-
-type EditActionProps = {
-  editUrl: string;
-  ariaLabel: string;
-};
-
-const EditAction: FC<EditActionProps> = ({ editUrl, ariaLabel }) => {
-  return (
-    <span className="mr-4">
-      <LinkButton className="px-2" to={editUrl} aria-label={ariaLabel}>
-        <Icon>edit</Icon>
-      </LinkButton>
-    </span>
-  );
-};
-
-export default EditAction;
+// Makes the @testing-library/jest-dom matchers (toBeInTheDocument, toHaveAttribute, ...)
+// known to TypeScript by augmenting vitest's Assertion interface for the test project.
+import "@testing-library/jest-dom/vitest";

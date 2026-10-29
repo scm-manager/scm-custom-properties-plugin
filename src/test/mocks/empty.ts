@@ -14,19 +14,5 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import React from "react";
-import styled from "styled-components";
-
-type Props = { children?: React.ReactNode };
-
-const StyledError = styled.p`
-  font-size: 0.75rem;
-  padding-left: 0.75rem;
-`;
-
-const FieldErrorMessage = ({ children }: Props) => (
-  // @ts-expect-error
-  <StyledError className="has-text-danger">{children}</StyledError>
-);
-
-export default FieldErrorMessage;
+// Type-only package (@scm-manager/ui-types); no runtime surface needed in tests.
+export default {};

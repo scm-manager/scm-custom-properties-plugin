@@ -14,27 +14,23 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { Subtitle, Title, Loading, ErrorNotification, useDocumentTitle } from "@scm-manager/ui-core";
 import React, { FC } from "react";
-import { useTranslation } from "react-i18next";
-import { GlobalConfig } from "../types";
+import {ErrorNotification, Loading, Title} from "@scm-manager/ui-core";
 import { useConfigLink } from "@scm-manager/ui-api";
-import GeneralSettings from "./GeneralSettings";
-import PredefinedKeys from "./PredefinedKeys";
+import { GlobalConfig } from "../types";
 import { useMissingMandatoryProperties } from "../hooks";
+import ConfigForm from "./ConfigForm";
+import {useTranslation} from "react-i18next";
 
 const GlobalConfiguration: FC<{ link: string }> = ({ link }) => {
+  const { isLoading, error, initialConfiguration: config, update, isUpdating, isReadOnly } =
+    useConfigLink<GlobalConfig>(link);
   const [t] = useTranslation("plugins");
-  const { isLoading, error, initialConfiguration: config, update, isUpdating } = useConfigLink<GlobalConfig>(link);
   const {
     isLoading: isLoadingMissingProperties,
     error: missingPropertiesError,
     data: missingProperties,
   } = useMissingMandatoryProperties();
-  useDocumentTitle(t("scm-custom-properties-plugin.config.title"));
-  const baseUrl = "/admin/settings/custom-properties";
-  const editUrl = `${baseUrl}/edit`;
-  const missingPropertiesUrl = `${baseUrl}/missing-mandatory-properties`;
 
   if (isLoading) {
     return <Loading />;
@@ -48,37 +44,20 @@ const GlobalConfiguration: FC<{ link: string }> = ({ link }) => {
     return null;
   }
 
-  const generalSettings = [
-    {
-      name: "enabled",
-      value: t(`scm-custom-properties-plugin.config.general.enabled.radio.${config.enabled}`),
-      ariaLabel: t("scm-custom-properties-plugin.config.general.enabled.edit.ariaLabel"),
-    },
-    {
-      name: "enableNamespaceConfig",
-      value: t(
-        `scm-custom-properties-plugin.config.general.enableNamespaceConfig.radio.${config.enableNamespaceConfig}`,
-      ),
-      ariaLabel: t("scm-custom-properties-plugin.config.general.enableNamespaceConfig.edit.ariaLabel"),
-    },
-  ];
-
   return (
     <>
-      <Title>{t("scm-custom-properties-plugin.config.title")}</Title>
-      <Subtitle>{t("scm-custom-properties-plugin.config.general.subtitle")}</Subtitle>
-      <GeneralSettings editBaseUrl={editUrl} settings={generalSettings} />
-      <Subtitle>{t("scm-custom-properties-plugin.config.predefinedKeys.subtitle")}</Subtitle>
-      <PredefinedKeys
+      <Title className="is-spaced">{t("scm-custom-properties-plugin.config.title")}</Title>
+      <ConfigForm
+        level="global"
         config={config}
         update={update}
-        isLoading={isUpdating}
-        editBaseUrl={editUrl}
-        isMissingPropertiesLoading={isLoadingMissingProperties}
+        isReadOnly={isReadOnly}
+        isUpdating={isUpdating}
         missingProperties={missingProperties ?? {}}
-        missingPropertiesBaseUrl={missingPropertiesUrl}
+        isMissingPropertiesLoading={isLoadingMissingProperties}
       />
     </>
+
   );
 };
 

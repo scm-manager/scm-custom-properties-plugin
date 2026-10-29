@@ -35,6 +35,8 @@ export type SinglePredefinedKey = {
 
 export type PredefinedKeys = Record<string, SinglePredefinedKey>;
 
+export type PredefinedKeyEntry = { key: string } & SinglePredefinedKey;
+
 export type BaseConfig = {
   predefinedKeys: PredefinedKeys;
 } & HalRepresentation;

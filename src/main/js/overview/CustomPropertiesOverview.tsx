@@ -17,22 +17,25 @@
 import React, { FC, useEffect, useState } from "react";
 import { HalRepresentation, Repository } from "@scm-manager/ui-types";
 import {
-  Subtitle,
   LinkButton,
   IconButton,
   Icon,
   Dialog,
   Button,
+  Level,
+  SubpageForm,
   useDocumentTitleForRepository,
 } from "@scm-manager/ui-core";
 import { useTranslation } from "react-i18next";
 import { SmallLoadingSpinner } from "@scm-manager/ui-components";
 import { CustomProperty } from "../types";
 import { useDeleteCustomProperty } from "../hooks";
-import CenteredTableFooter from "../component/CenteredTableFooter";
 import MinWidthTableCell from "../component/MinWidthTableCell";
 import PropertyTag from "../component/PropertyTag";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router-dom";
+import { urls } from "@scm-manager/ui-api";
+import CustomPropertiesBreadcrumb from "./CustomPropertiesBreadcrumb";
+import CustomPropertiesEditor from "./CustomPropertiesEditor";
 
 type CustomPropertyActionProps = {
   repository: Repository;
@@ -44,41 +47,6 @@ type CustomPropertyActionProps = {
 type MissingPropertyActionProps = {
   missingProperty: string;
   modifyUrl: string;
-};
-
-//Copy and Paste from the Core, due to the limitation of core version for this plugin
-const WarningIcon: FC = () => {
-  return (
-    <span className="icon has-text-warning" aria-hidden="true">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        id="Ebene_1"
-        data-name="Ebene 1"
-        height="1em"
-        width="1em"
-        viewBox="0 0 140 140"
-        fill="currentColor"
-        className="fas fa-fw fa-custom-icon fa-lg"
-      >
-        <defs>
-          <mask id="cutoutMask">
-            <rect x="0" y="0" width="140" height="140" fill="white" />
-            <path
-              className="cls-2"
-              d="M79.93,109.67c-2.75,2.75-6.06,4.13-9.93,4.13s-7.18-1.38-9.93-4.13-4.13-6.06-4.13-9.93,1.38-7.18,4.13-9.93,6.06-4.13,9.93-4.13,7.18,1.38,9.93,4.13,4.13,6.06,4.13,9.93-1.38,7.18-4.13,9.93ZM59.98,76.01c0,1.17.41,2.14,1.23,2.9s1.82,1.14,2.99,1.14h11.6c1.17,0,2.17-.38,2.99-1.14s1.23-1.73,1.23-2.9l2.46-47.81c0-1.17-.41-2.2-1.23-3.08s-1.82-1.32-2.99-1.32h-16.52c-1.17,0-2.17.44-2.99,1.32s-1.23,1.9-1.23,3.08l2.46,47.81Z"
-              fill="black"
-            />
-          </mask>
-        </defs>
-        <path
-          className="cls-1"
-          d="M125,0c4.17,0,7.71,1.46,10.62,4.38s4.38,6.46,4.38,10.62v110c0,4.17-1.46,7.71-4.38,10.63-2.92,2.92-6.46,4.38-10.62,4.38H15c-4.17,0-7.71-1.46-10.62-4.38-2.92-2.92-4.38-6.46-4.38-10.63V15c0-4.17,1.46-7.71,4.38-10.62S10.83,0,15,0h110Z"
-          mask="url(#cutoutMask)"
-          fill="currentColor"
-        />
-      </svg>
-    </span>
-  );
 };
 
 const MissingPropertyAction: FC<MissingPropertyActionProps> = ({ missingProperty, modifyUrl }) => {
@@ -189,6 +157,10 @@ const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({
   const defaultValueTag = t("scm-custom-properties-plugin.editor.defaultValueTag");
   const mandatoryValueTag = t("scm-custom-properties-plugin.editor.mandatoryValueTag");
 
+  const keyHeader = t("scm-custom-properties-plugin.table.header.key");
+  const valueHeader = t("scm-custom-properties-plugin.table.header.value");
+  const actionHeader = t("scm-custom-properties-plugin.table.header.action");
+
   useEffect(() => {
     if (location.hash) {
       document.getElementById(location.hash.substring(1))?.scrollIntoView({ behavior: "instant" });
@@ -196,86 +168,93 @@ const CustomPropertiesTable: FC<CustomPropertiesTableProps> = ({
   }, [location.hash]);
 
   return (
-    <table className="table">
-      <thead>
-        <tr>
-          <th>{t("scm-custom-properties-plugin.table.header.key")}</th>
-          <th>{t("scm-custom-properties-plugin.table.header.value")}</th>
-          <th>{t("scm-custom-properties-plugin.table.header.action")}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {[...customProperties]
-          .sort((propA, propB) => propA.key.localeCompare(propB.key))
-          .map((property) => (
-            <tr key={property.key}>
-              <td>{property.key}</td>
-              <td>
-                {property.value.includes(property.separator) ? (
-                  <ul>
-                    {property.value
-                      .split(property.separator)
-                      .sort((a, b) => a.localeCompare(b))
-                      .map((value) => (
-                        <li key={`${property.key}-${value}`}>{value}</li>
-                      ))}
-                  </ul>
-                ) : (
-                  <>
-                    {property.value}
-                    {property.defaultProperty && <PropertyTag>{defaultValueTag}</PropertyTag>}
-                    {property.mandatory && <PropertyTag>{mandatoryValueTag}</PropertyTag>}
-                  </>
-                )}
-              </td>
-              <MinWidthTableCell>
-                <CustomPropertyAction
-                  repository={repository}
-                  customProperty={property}
-                  modifyUrl={modifyUrl}
-                  isCreateAllowed={isCreateAllowed}
-                />
-              </MinWidthTableCell>
-            </tr>
-          ))}
-        {missingProperties.length !== 0 ? (
-          <>
-            <tr>
-              <th id="missing-properties" colSpan={2}>
-                <div className="is-flex is-align-items-center">
-                  {t("scm-custom-properties-plugin.table.header.missingProperty")}
-                  <span className="ml-2">
-                    <WarningIcon>exclamation</WarningIcon>
-                  </span>
-                </div>
-              </th>
-              <th>{t("scm-custom-properties-plugin.table.header.action")}</th>
-            </tr>
-            {[...missingProperties]
-              .sort((keyA, keyB) => keyA.localeCompare(keyB))
-              .map((value) => (
-                <tr key={value}>
-                  <td colSpan={2}>{value}</td>
-                  <MinWidthTableCell>
-                    {isCreateAllowed && <MissingPropertyAction missingProperty={value} modifyUrl={modifyUrl} />}
-                  </MinWidthTableCell>
-                </tr>
-              ))}
-          </>
-        ) : null}
-      </tbody>
-      {isCreateAllowed ? (
-        <CenteredTableFooter>
+    <>
+      <Level
+        left={<span className="subtitle">{t("scm-custom-properties-plugin.navLink")}</span>}
+        right={
+          isCreateAllowed ? (
+            <LinkButton to={`${modifyUrl}?mode=add`} variant="ghost">
+              <Icon className="mr-1">edit</Icon>
+              {t("scm-custom-properties-plugin.table.footer.add")}
+            </LinkButton>
+          ) : undefined
+        }
+      />
+      <SubpageForm.SubpageTable>
+        <thead>
           <tr>
-            <td colSpan={3}>
-              <LinkButton to={modifyUrl} variant="primary">
-                {t("scm-custom-properties-plugin.table.footer.add")}
-              </LinkButton>
-            </td>
+            <th>{keyHeader}</th>
+            <th>{valueHeader}</th>
+            <th>{actionHeader}</th>
           </tr>
-        </CenteredTableFooter>
-      ) : null}
-    </table>
+        </thead>
+        <tbody>
+          {customProperties.length === 0 && missingProperties.length === 0 ? (
+            <SubpageForm.SubpageTable.EmptyRow colSpan={3}>
+              {t("scm-custom-properties-plugin.table.empty")}
+            </SubpageForm.SubpageTable.EmptyRow>
+          ) : null}
+          {[...customProperties]
+            .sort((propA, propB) => propA.key.localeCompare(propB.key))
+            .map((property) => (
+              <tr key={property.key}>
+                <td data-label={keyHeader}>{property.key}</td>
+                <td data-label={valueHeader}>
+                  {property.value.includes(property.separator) ? (
+                    <ul>
+                      {property.value
+                        .split(property.separator)
+                        .sort((a, b) => a.localeCompare(b))
+                        .map((value) => (
+                          <li key={`${property.key}-${value}`}>{value}</li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <>
+                      {property.value}
+                      {property.defaultProperty && <PropertyTag>{defaultValueTag}</PropertyTag>}
+                      {property.mandatory && <PropertyTag>{mandatoryValueTag}</PropertyTag>}
+                    </>
+                  )}
+                </td>
+                <MinWidthTableCell label={actionHeader}>
+                  <CustomPropertyAction
+                    repository={repository}
+                    customProperty={property}
+                    modifyUrl={modifyUrl}
+                    isCreateAllowed={isCreateAllowed}
+                  />
+                </MinWidthTableCell>
+              </tr>
+            ))}
+          {missingProperties.length !== 0 ? (
+            <>
+              <tr>
+                <th id="missing-properties" colSpan={2}>
+                  <div className="is-flex is-align-items-center">
+                    {t("scm-custom-properties-plugin.table.header.missingProperty")}
+                    <Icon className="has-text-warning">exclamation</Icon>
+                  </div>
+                </th>
+                <th>{actionHeader}</th>
+              </tr>
+              {[...missingProperties]
+                .sort((keyA, keyB) => keyA.localeCompare(keyB))
+                .map((value) => (
+                  <tr key={value}>
+                    <td colSpan={2} data-label={keyHeader}>
+                      {value}
+                    </td>
+                    <MinWidthTableCell label={actionHeader}>
+                      {isCreateAllowed && <MissingPropertyAction missingProperty={value} modifyUrl={modifyUrl} />}
+                    </MinWidthTableCell>
+                  </tr>
+                ))}
+            </>
+          ) : null}
+        </tbody>
+      </SubpageForm.SubpageTable>
+    </>
   );
 };
 
@@ -285,21 +264,49 @@ type Props = {
 
 const CustomPropertiesOverview: FC<Props> = ({ repository }) => {
   const [t] = useTranslation("plugins");
-  useDocumentTitleForRepository(repository, t("scm-custom-properties-plugin.repository.subtitle"));
+  const location = useLocation();
+  const navigate = useNavigate();
   const customProperties = (repository._embedded?.customProperties as { properties: CustomProperty[] }).properties;
   const missingMandatoryProperties = (repository._embedded?.missingMandatoryProperties as { missing: string[] })
     .missing;
-  const modifyUrl = `/repo/${repository.namespace}/${repository.name}/custom-properties/modify`;
+  const modifyUrl = `/repo/${repository.namespace}/${repository.name}/custom-properties`;
+
+  const mode = urls.getValueStringFromLocationByKey(location, "mode");
+  const existingPropertyKey = urls.getValueStringFromLocationByKey(location, "key");
+  const defaultProperty = urls.getValueStringFromLocationByKey(location, "defaultProperty");
+  const missingProperty = urls.getValueStringFromLocationByKey(location, "missingProperty");
+  const isEditing = mode === "add" || !!existingPropertyKey || !!defaultProperty || !!missingProperty;
+
+  const closeSubpage = () => navigate(modifyUrl);
+
+  const subpageTitle = isEditing
+    ? existingPropertyKey
+      ? t("scm-custom-properties-plugin.editor.subtitle_edit", { key: existingPropertyKey })
+      : t("scm-custom-properties-plugin.editor.subtitle_create")
+    : undefined;
+
+  const titleParts = subpageTitle
+    ? [subpageTitle, t("scm-custom-properties-plugin.repository.subtitle")]
+    : [t("scm-custom-properties-plugin.repository.subtitle")];
+  useDocumentTitleForRepository(repository, ...titleParts);
 
   return (
     <>
-      <Subtitle>{t("scm-custom-properties-plugin.repository.subtitle")}</Subtitle>
-      <CustomPropertiesTable
-        repository={repository}
-        customProperties={customProperties}
-        modifyUrl={modifyUrl}
-        missingProperties={missingMandatoryProperties}
+      <CustomPropertiesBreadcrumb
+        title={t("scm-custom-properties-plugin.repository.subtitle")}
+        activeSubpageTitle={subpageTitle}
+        onBack={closeSubpage}
       />
+      {isEditing ? (
+        <CustomPropertiesEditor repository={repository} />
+      ) : (
+        <CustomPropertiesTable
+          repository={repository}
+          customProperties={customProperties}
+          modifyUrl={modifyUrl}
+          missingProperties={missingMandatoryProperties}
+        />
+      )}
     </>
   );
 };

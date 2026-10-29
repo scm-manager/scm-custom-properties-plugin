@@ -14,10 +14,20 @@
  * along with this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import styled from "styled-components";
+import "@testing-library/jest-dom/vitest";
+import { afterEach, beforeEach, vi } from "vitest";
+import { cleanup } from "@testing-library/react";
+import { __resetUiApi } from "./mocks/ui-api";
 
-const CenteredTableFooter = styled.tfoot`
-  text-align: center;
-`;
+// jsdom does not implement scrollIntoView; stub it so hash-scroll effects don't throw.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = vi.fn();
+}
 
-export default CenteredTableFooter;
+beforeEach(() => {
+  __resetUiApi();
+});
+
+afterEach(() => {
+  cleanup();
+});

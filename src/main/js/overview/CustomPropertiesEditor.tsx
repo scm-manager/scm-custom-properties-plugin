@@ -16,31 +16,14 @@
 
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { Option, Repository } from "@scm-manager/ui-types";
-import {
-  Combobox,
-  Subtitle,
-  Title,
-  useDocumentTitleForRepository,
-  Input,
-  Label,
-  Checkbox,
-  SelectField,
-  Level,
-  Button,
-  ErrorNotification,
-} from "@scm-manager/ui-core";
+import { Combobox, Input, Label, Checkbox, SelectField, Level, Button, ErrorNotification } from "@scm-manager/ui-core";
 import { useTranslation } from "react-i18next";
 import { useCreateCustomProperty, useEditCustomProperty, useQueryPredefinedKeys } from "../hooks";
 import { Row, Field, ButtonsContainer } from "../component/FormUtils";
 import { CustomProperty } from "../types";
-import { useHistory, useLocation } from "react-router";
+import { useNavigate, useLocation } from "react-router-dom";
 import { validateKey } from "../validation";
 import { urls } from "@scm-manager/ui-api";
-
-/*
- * TODOS:
- * - isDirty
- */
 
 type Props = {
   repository: Repository;
@@ -59,12 +42,7 @@ const FORM_IDS = {
 
 const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
   const [t] = useTranslation("plugins");
-  const history = useHistory();
-  useDocumentTitleForRepository(
-    repository,
-    t("scm-custom-properties-plugin.repository.subtitle"),
-    t("scm-custom-properties-plugin.config.edit"),
-  );
+  const navigate = useNavigate();
 
   const location = useLocation();
   const queryExistingPropertyKey = urls.getValueStringFromLocationByKey(location, "key");
@@ -214,7 +192,7 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
   };
 
   const redirectBackToOverview = () => {
-    history.push(`/repo/${repository.namespace}/${repository.name}/custom-properties`);
+    navigate(`/repo/${repository.namespace}/${repository.name}/custom-properties`);
   };
 
   const isValueDirty = () => {
@@ -252,19 +230,21 @@ const CustomPropertiesEditor: FC<Props> = ({ repository }) => {
     e.preventDefault();
     const customProperty = transformInputsToCustomProperty();
 
-    if (isEditMode()) {
-      await editCustomProperty(customProperty);
-    } else {
-      await createCustomProperty(customProperty);
+    try {
+      if (isEditMode()) {
+        await editCustomProperty(customProperty);
+      } else {
+        await createCustomProperty(customProperty);
+      }
+      redirectBackToOverview();
+    } catch {
+      // The failure is surfaced to the user via creationError/editingError (ErrorNotification);
+      // stay on the form and swallow the rejection so it does not become an unhandled rejection.
     }
-
-    redirectBackToOverview();
   };
 
   return (
     <form id={FORM_IDS.form} onSubmit={onSubmit} noValidate>
-      <Title>{t("scm-custom-properties-plugin.config.general.predefinedKeys.title")}</Title>
-      <Subtitle>{t("scm-custom-properties-plugin.config.general.predefinedKeys.subtitle")}</Subtitle>
       {creationError ? <ErrorNotification error={creationError} /> : null}
       {editingError ? <ErrorNotification error={editingError} /> : null}
       <Row>

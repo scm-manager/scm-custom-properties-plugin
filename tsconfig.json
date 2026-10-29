@@ -1,6 +1,10 @@
 {
   "extends": "@scm-manager/tsconfig",
+  "compilerOptions": {
+    "resolveJsonModule": true
+  },
   "include": [
-    "./src/main/js"
+    "./src/main/js",
+    "./src/test"
   ]
 }

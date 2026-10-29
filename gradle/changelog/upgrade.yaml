@@ -1,0 +1,4 @@
+- type: changed
+  description: Migrated to SCM-Manager 4.0
+- type: changed
+  description: Unified UI of multi page forms

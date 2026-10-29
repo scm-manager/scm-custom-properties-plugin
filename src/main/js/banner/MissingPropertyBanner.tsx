@@ -16,7 +16,7 @@
 
 import React, { FC } from "react";
 import { Repository } from "@scm-manager/ui-types";
-import { useLocation } from "react-router";
+import { useLocation } from "react-router-dom";
 import styled from "styled-components";
 import { Icon, LinkButton } from "@scm-manager/ui-core";
 import { useTranslation } from "react-i18next";
@@ -42,8 +42,8 @@ const MissingPropertyBanner: FC<Props> = ({ repository }) => {
   const location = useLocation();
   const locationParts = location.pathname.split("/");
 
-  const missingMandatoryProperties = (repository._embedded?.missingMandatoryProperties as { missing: string[] })
-    .missing;
+  const missingMandatoryProperties =
+    (repository._embedded?.missingMandatoryProperties as { missing: string[] } | undefined)?.missing ?? [];
 
   if (missingMandatoryProperties.length === 0) {
     return null;
